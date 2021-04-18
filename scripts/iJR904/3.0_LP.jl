@@ -32,13 +32,7 @@ const FBA_Z_FIX_MIN_COST    = :FBA_Z_FIX_MIN_COST
 const FBA_MAX_BIOM_MIN_COST = :FBA_MAX_BIOM_MIN_COST
 const FBA_Z_FIX_MIN_VG_COST = :FBA_Z_FIX_MIN_VG_COST
 const FBA_Z_VG_FIX_MIN_COST = :FBA_Z_VG_FIX_MIN_COST
-const EXPS = 1:4
-
-## -----------------------------------------------------------------------------------------------
-function load_model(exp)
-    BASE_MODELS = ChU.load_data(iJR.BASE_MODELS_FILE; verbose = false);
-    model = BASE_MODELS["fva_models"][exp] |> ChU.uncompressed_model
-end
+const EXPS = Nd.EXPS
 
 ## -----------------------------------------------------------------------------------------------
 # Data container
@@ -60,16 +54,16 @@ let
 
         # FBA_MAX_BIOM_MIN_COST
         let
-            model = load_model(exp)
+            model = iJR.load_model("fva_models", exp)
             fbaout = ChLP.fba(model, objider, costider)
             
             LPDAT[FBA_MAX_BIOM_MIN_COST, :model, exp] = model
             LPDAT[FBA_MAX_BIOM_MIN_COST, :fbaout, exp] = fbaout
         end
-
+        
         # FBA_Z_FIX_MIN_COST
         let
-            model = load_model(exp)
+            model = iJR.load_model("fva_models", exp)
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
             fbaout = ChLP.fba(model, objider, costider)
@@ -80,7 +74,7 @@ let
 
         # FBA_Z_FIX_MIN_VG_COST
         let
-            model = load_model(exp)
+            model = iJR.load_model("fva_models", exp)
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
             fbaout1 = ChLP.fba(model, exglcider; sense = max_sense)
@@ -94,10 +88,14 @@ let
 
         # FBA_Z_VG_FIX_MIN_COST
         let
-            model = load_model(exp)
+            model = iJR.load_model("fva_models", exp)
+        
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
+            
             exp_exglc = Nd.uval("GLC", exp)
+            # exp_exglc must be negative
+            exp_exglc = exp_exglc > 0 ? -exp_exglc : exp_exglc 
             ChU.bounds!(model, exglcider, exp_exglc, exp_exglc)
             fbaout = ChLP.fba(model, costider; sense = min_sense)
 
@@ -108,4 +106,5 @@ let
 end
 
 ## -------------------------------------------------------------------
-ChU.save_data(iJR.LP_DAT_FILE, LPDAT)
+LP_DAT_FILE = iJR.procdir("lp_dat_file.bson")
+ChU.save_data(LP_DAT_FILE, LPDAT)

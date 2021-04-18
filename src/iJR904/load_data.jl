@@ -24,10 +24,12 @@ function load_mets_map()
     return mets_map
 end
 
-# EX_glc_LPAREN_e_RPAREN_
+## ------------------------------------------------------------------
 function load_rxns_map()
     rxns_map = Dict()
     rxns_map["D"] = "BiomassEcoli"
+
+    # exchanges
     rxns_map["AC"] = "EX_ac_LPAREN_e_RPAREN_"
     rxns_map["NH4"] = "EX_nh4_LPAREN_e_RPAREN_"
     rxns_map["GLC"] = "EX_glc_LPAREN_e_RPAREN_"
@@ -40,12 +42,35 @@ function load_rxns_map()
     rxns_map["MAL"] = "EX_mal_L_LPAREN_e_RPAREN_"
     rxns_map["LAC"] = "EX_lac_D_LPAREN_e_RPAREN_"
     rxns_map["PYR"] = "EX_pyr_LPAREN_e_RPAREN_"
+
+    # inner reacts
+    rxns_map["GLC + ATP -> G6P"] = "HEX1"
+    rxns_map["G6P -> 6PG + NADPH"] = "PGL"
+    rxns_map["6PG -> P5P + CO2 + NADPH"] = "GND"
+    rxns_map["G6P -> F6P"] = "PGI"
+    rxns_map["F6P + ATP -> 2T3P"] = "PFK"
+    rxns_map["2P5P -> S7P + T3P"] = "TKT1"
+    rxns_map["P5P + E4P -> F6P + T3P"] = "TKT2"
+    rxns_map["S7P + T3P -> E4P + F6P"] = "TALA"
+    rxns_map["T3P -> PGA + ATP + NADH"] = "PGK"
+    rxns_map["PEP -> PYR + ATP"] = "PYK"
+    rxns_map["PYR -> AcCoA + CO2 + NADH"] = "PDH"
+    rxns_map["OAA + AcCoA -> ICT"] = "CS"
+    rxns_map["ICT -> OGA + CO2 + NADPH"] = "ICDHyr"
+    rxns_map["FUM -> MAL"] = "FUM"
+    rxns_map["MAL -> OAA + NADH"] = "MDH"
+    rxns_map["MAL -> PYR + CO2 + NADH"] = "ME1"
+    rxns_map["OAA + ATP -> PEP + CO2"] = "PPCK"
+    rxns_map["PEP + CO2 -> OAA"] = "PPC"
+    rxns_map["AcCoA -> Acetate + ATP"] = "ACS"
+    rxns_map["ICT + AcCoA -> MAL + FUM + NADH"] = "MALS"
+    rxns_map["PGA -> PEP"] = "ENO"
+
     for (k, v) in rxns_map
         rxns_map[v] = k
     end
     return rxns_map
 end
-
 
 ## ------------------------------------------------------------------
 # enzymatic costs
@@ -174,8 +199,6 @@ function load_beg_rxns_map()
     return beg_rxns_map
 end
 
-
-
 ## ------------------------------------------------------------------
 # base model exch met map
 # A quick way to get exchages from mets and te other way around
@@ -189,7 +212,6 @@ load_exch_met_map() = UJL.load_data(procdir("exch_met_map.bson"); verbose=false)
 function load_base_intake_info()
     return Dict(
         "EX_glc_LPAREN_e_RPAREN_" => Dict("c"=> maximum(Nd.val(:cGLC)), "lb"=> -ABS_MAX_BOUND),
-        
         "EX_nh4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
@@ -200,10 +222,65 @@ end
 function intake_info(exp)
     return Dict(
         "EX_glc_LPAREN_e_RPAREN_" => Dict("c"=> Nd.val(:cGLC, exp), "lb"=> -ABS_MAX_BOUND),
-        
         "EX_nh4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_so4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
     )
 end
+
+function load_krebs_iders()
+    krebs_iders = ["SUCD1", "SUCOAS", "AKGDH", "ICDHyr", 
+        "ACONT", "CS", "MDH", "FUM", "MALS", "ICL"
+    ]
+end
+
+function load_inner_iders()
+    inner_iders =  [
+        "HEX1" ,"PGL" ,"GND" ,"PGI" ,"PFK" ,"TKT1" ,
+        "TKT2" ,"TALA" ,"GAPD" ,"PYK" ,"PYR" ,"CS" ,"ICDHyr" ,
+        "FUM" ,"MDH" ,"ME1" ,"PPCK" ,"PPC" ,"ACS" ,"MALS"
+    ]
+end
+
+function load_inner_idermap()
+    inner_idermap = Dict(
+        "HEX1"   => ["HEX1"],
+        "PGL"    => ["PGL"],
+        "GND"    => ["GND"],
+        "PGI"    => ["PGI_fwd", "PGI_bkwd"],
+        "PFK"    => ["PFK"],
+        "TKT1"   => ["TKT1_fwd", "TKT1_bkwd"],
+        "TKT2"   => ["TKT2_fwd", "TKT2_bkwd"],
+        "TALA"   => ["TALA_fwd", "TALA_bkwd"],
+        "PYK"    => ["PYK"],
+        "PDH"    => ["PDH"],
+        "CS"     => ["CS"],
+        "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
+        "FUM"    => ["FUM_fwd", "FUM_bkwd"],
+        "MDH"    => ["MDH_fwd", "MDH_bkwd"],
+        "ME1"    => ["ME1"],
+        "PPCK"   => ["PPCK"],
+        "PPC"    => ["PPC"],
+        "ACS"    => ["ACS"],
+        "MALS"   => ["MALS"],
+        "PGK"    => ["PGK_fwd", "PGK_bkwd"],
+        "ENO"    => ["ENO_fwd", "ENO_bkwd"],
+    )
+end
+
+function load_kreps_idermap()
+    kreps_idermap = Dict(
+        "SUCD1"  => ["SUCD1i"], 
+        "SUCOAS" => ["SUCOAS_fwd", "SUCOAS_bkwd"], 
+        "AKGDH"  => ["AKGDH"],
+        "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
+        "ACONT"  => ["ACONT_bkwd", "ACONT_fwd"],
+        "CS"     => ["CS"],
+        "MDH"    => ["MDH_fwd", "MDH_bkwd"],
+        "FUM"    => ["FUM_fwd", "FUM_bkwd"],
+        "MALS"   => ["MALS"],
+        "ICL"    => ["ICL"]
+    )
+end
+

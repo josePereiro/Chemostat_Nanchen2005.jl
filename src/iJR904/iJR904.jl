@@ -18,7 +18,6 @@ module iJR904
     include("load_data.jl")
     include("beg_enz_cost.jl")
     include("load_model.jl")
-    include("iJR_inner_rxn_map.jl")
     
     function __init__()
         UJL.create_proj_dirs(@__MODULE__)

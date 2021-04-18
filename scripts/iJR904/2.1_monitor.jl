@@ -9,6 +9,8 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     const iJR = ChN.iJR904
 
     using Plots
+    import GR
+    GR.inline("png")
 
     import UtilsJL
     const UJL = UtilsJL
@@ -18,13 +20,13 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
 end
 
 ## ----------------------------------------------------------------------------
-fileid = "2.0"
+fileid = "2.1"
 mysavefig(p, pname; params...) = 
-    UJL.mysavefig(p, string(fileid, "_", pname), iJR.MODEL_FIGURES_DIR; params...)
+    UJL.mysavefig(p, string(fileid, "_", pname), iJR.plotsdir(); params...)
 
 ## ----------------------------------------------------------------------------
 let
-    mon = UJL.OnDiskMonitor(iJR.MODEL_CACHE_DIR, "monitor.jld2")
+    mon = UJL.OnDiskMonitor(iJR.cachedir(), "monitor.jld2")
     live_proves = Dict()
 
     UJL.watch(mon; wt = 15.0) do ddat

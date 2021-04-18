@@ -11,7 +11,6 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
 
     const iJR = ChN.iJR904
     const Nd = ChN.NanchenData # experimental data
-    const Bd = ChN.BegData    # cost data
 
     #  ----------------------------------------------------------------------------
     # run add "https://github.com/josePereiro/Chemostat" in the 
@@ -30,11 +29,11 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     using Base.Threads
 end
 
-# ----------------------------------------------------------------------------------
+## ----------------------------------------------------------------------------------
 DAT = ChU.DictTree();
 
 # ----------------------------------------------------------------------------------
-FLX_IDERS = ["GLC", "SUCC", "AC", "FORM"]
+FLX_IDERS = ["GLC", "AC"]
 DAT[:FLX_IDERS] = FLX_IDERS;
 
 # -------------------------------------------------------------------
@@ -53,8 +52,10 @@ const FBA_Z_FIX_MIN_VG_COST   = :FBA_Z_FIX_MIN_VG_COST
 const FBA_Z_VG_FIX_MIN_COST   = :FBA_Z_VG_FIX_MIN_COST
 
 LP_METHODS = [
-    FBA_Z_FIX_MIN_COST, FBA_MAX_BIOM_MIN_COST, 
-    FBA_Z_FIX_MIN_VG_COST, FBA_Z_VG_FIX_MIN_COST
+    FBA_Z_FIX_MIN_COST, 
+    # FBA_MAX_BIOM_MIN_COST, 
+    # FBA_Z_FIX_MIN_VG_COST, 
+    # FBA_Z_VG_FIX_MIN_COST
 ]
 DAT[:LP_METHODS] = LP_METHODS
 
@@ -71,12 +72,8 @@ DAT[:ME_METHODS] = ME_METHODS
 ALL_METHODS = [LP_METHODS; ME_METHODS]
 DAT[:ALL_METHODS] = ALL_METHODS
 
-EXPS = 1:4
+EXPS = Nd.EXPS
 DAT[:EXPS] = EXPS;
-
-# -------------------------------------------------------------------
-ME_INDEX_FILE = iJR.procdir("maxent_ep_index.bson")
-ME_INDEX = ChU.load_data(ME_INDEX_FILE; verbose = false);
 
 # -------------------------------------------------------------------
 LP_DAT_FILE = iJR.procdir("lp_dat_file.bson")
@@ -176,6 +173,7 @@ end
 ## ----------------------------------------------------------------------------------
 # MAXENT DAT
 let 
+    return
     WLOCK = ReentrantLock()
     objider = iJR.BIOMASS_IDER
 
@@ -250,8 +248,9 @@ let
                 end
             end
 
-            # additional fluxs
-            for (ider, model_iders) in iJR.kreps_idermap
+            # inner flxs
+            idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
+            for (ider, model_iders) in idermap
                 # flxs
                 ep_av = ChU.av(model, epout, model_iders[1])
                 ep_std = sqrt(ChU.va(model, epout, model_iders[1]))
@@ -298,8 +297,8 @@ let
                 DAT[method, :flx, Fd_ider, exp] = fba_flx
             end
 
-            # additional fluxs
-            for (ider, model_iders) in iJR.kreps_idermap
+            idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
+            for (ider, model_iders) in idermap
                 # flxs
                 fba_flx = ChU.av(model, fbaout, model_iders[1])
                 if length(model_iders) == 2 # reversible

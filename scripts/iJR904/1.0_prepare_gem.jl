@@ -154,6 +154,24 @@ model = ChU.fix_dims(model)
 ChN.test_fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER)
 
 ## -------------------------------------------------------------------
+function scale_model(model, scale_factor)
+    base_nzabs_range = ChU.nzabs_range(model.S)
+    base_size = size(model)
+    
+    # Scale model (reduce S ill-condition)
+    model = ChU.well_scaled_model(model, scale_factor)
+    
+    scl_size = size(model)
+    scl_nzabs_range = ChU.nzabs_range(model.S)
+
+    @info("Model", exp, 
+        base_size, base_nzabs_range, 
+        scl_size, scl_nzabs_range
+    ); println()
+    return model
+end
+
+## -------------------------------------------------------------------
 # FVA PREPROCESSING
 MODELS_FILE = iJR.procdir("base_models.bson")
 const BASE_MODELS = isfile(MODELS_FILE) ? 
@@ -175,7 +193,9 @@ let
 
         ## -------------------------------------------------------------------
         # prepare model
-        model0 = deepcopy(model)
+        scale_factor = 1000.0
+        model0 = scale_model(deepcopy(model), scale_factor)
+
         M, N = size(model0)
         exp_xi = Nd.val(:xi, exp)
         intake_info = iJR.intake_info(exp)
@@ -209,7 +229,8 @@ let
 
     ChU.tagprintln_inmw("DOING MAX MODEL", "\n")
 
-    max_model = deepcopy(model)
+    scale_factor = 1000.0
+    max_model = scale_model(deepcopy(model), scale_factor)
     
     # Biomass
     # 2.2 1/ h
@@ -233,8 +254,7 @@ let
 
     ## -------------------------------------------------------------------
     test_model = deepcopy(max_model)
-    for exp in Nd.EXPS
-        D = Nd.val(:D, exp)
+    for (exp, D) in Nd.val(:D) |> enumerate
         cgD_X = Nd.cval(:GLC, exp) * Nd.val(:D, exp) / Nd.val(:X, exp)
         ChU.lb!(test_model, iJR.EX_GLC_IDER, -cgD_X)
         fbaout = ChLP.fba(test_model, iJR.BIOMASS_IDER, iJR.COST_IDER)

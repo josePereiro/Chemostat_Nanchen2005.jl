@@ -76,7 +76,7 @@ let
             # the whole simulation converge as ~log, 
             # so I force betas increment by stepping
             beta_scale_rounditer0 = 3 # starting round for beta stepping
-            beta_scale_factor = 1.0 # stepping scaling factor
+            beta_scale_factor = 0.5 # stepping scaling factor
 
             rounditer = 1 # current round iter
             maxrounds = 50 # max no of rounds
@@ -111,6 +111,11 @@ let
                     (biom_beta, vg_beta), 
                     thid
                 ); println()
+            end
+
+            function check_nan()
+                params = [biom_beta, vg_beta, biom_avPME, vg_avPME]
+                any(isnan.(params))
             end
 
             ## -------------------------------------------------------------------
@@ -158,7 +163,8 @@ let
                 end
 
                 # RUN OUT OF PATIENT
-                (gdit >= turbo_iter0 && rem(gdit, turbo_frec) == 0) && (gdmodel.maxΔx *= turbo_factor)
+                (gdit >= turbo_iter0 && rem(gdit, turbo_frec) == 0) && 
+                    (gdmodel.maxΔx *= turbo_factor)
                 
                 gdit += 1
             end
@@ -182,7 +188,7 @@ let
                 let
                     target = exp_growth
                     x0 = biom_beta
-                    maxΔx = max(abs(biom_beta) * 0.05, 5e3)
+                    maxΔx = max(abs(biom_beta) * 0.05, 5e2)
                     minΔx = maxΔx * 0.001
                     x1 = x0 + maxΔx * 0.01
                     senses = [] # To detect damping
@@ -234,7 +240,7 @@ let
                     # VG GRAD DESCEND: Match biomass momentums
                     target = cgD_X * 0.99 # force to be inside
                     x0 = vg_beta
-                    maxΔx = max(abs(vg_beta) * 0.05, 1e3)
+                    maxΔx = max(abs(vg_beta) * 0.05, 1e2)
                     minΔx = maxΔx * 0.001
                     x1 = x0 + maxΔx * 0.01
             
@@ -277,11 +283,10 @@ let
 
                 ## -------------------------------------------------------------------
                 # CEHCK NAN
-                if any(isnan.(biom_betas)) || any(isnan.(vg_betas))
+                if check_nan()
                     print_info("Nan detected (BIG PROBLEMS HERE)"; 
                         exp, rounditer
-                    )
-                    break
+                    ); break
                 end
                 
                 ## -------------------------------------------------------------------

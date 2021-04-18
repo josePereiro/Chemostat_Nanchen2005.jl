@@ -6,19 +6,3 @@ const COST_IDER = "tot_cost"
 const ABS_MAX_BOUND = 100.0
 const MAX_CONC = 9999.0
 
-krebs_iders = ["SUCD1", "SUCOAS", "AKGDH", "ICDHyr", 
-    "ACONT", "CS", "MDH", "FUM", "MALS", "ICL"
-]
-
-kreps_idermap = Dict(
-    "SUCD1" => ["SUCD1i"], 
-    "SUCOAS" => ["SUCOAS_fwd", "SUCOAS_bkwd"], 
-    "AKGDH" => ["AKGDH"],
-    "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
-    "ACONT" => ["ACONT_bkwd", "ACONT_fwd"],
-    "CS" => ["CS"],
-    "MDH" => ["MDH_fwd", "MDH_bkwd"],
-    "FUM" => ["FUM_fwd", "FUM_bkwd"],
-    "MALS" => ["MALS"],
-    "ICL" => ["ICL"]
-)
