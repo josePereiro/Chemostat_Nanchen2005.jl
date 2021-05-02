@@ -9,12 +9,28 @@ let
         thid = threadid()
 
         ## -------------------------------------------------------------------
+        # thread globals
+        # ep
+        alpha = Inf
+        damp = 0.9
+        epsconv = 1e-4 # Test
+        maxvar = 1e50
+        minvar = 1e-50
+        maxiter = 1000
+
+        # approach
+        convth = 0.01
+        converr = nothing
+
+
+        ## -------------------------------------------------------------------
         # handle cache
-        datfile = dat_file(string(DAT_FILE_PREFFIX, method); exp)
-        check_cache(datfile, exp, method) || continue
+        datfile = dat_file(;method, exp)
+        # rm(datfile; force = true) # Test
+        check_cache(;method, exp) && continue
 
         # prepare model
-        model = load_model(exp)
+        model = iJR.load_model("fva_models", exp)
         biomidx = ChU.rxnindex(model, iJR.BIOMASS_IDER)
         M, N = size(model)
         exp_growth = Nd.val(:D, exp)
@@ -23,7 +39,6 @@ let
         biom_lb, biom_ub = ChU.bounds(model, iJR.BIOMASS_IDER)
         if biom_ub < exp_growth
             lock(WLOCK) do
-                INDEX[method, :DFILE, exp] = :unfeasible
                 @info("Not feasible (skipping)", 
                     exp, method, 
                     biom_ub ,exp_growth, 
@@ -32,7 +47,7 @@ let
             end
             continue
         end
-        ChU.ub!(model, iJR.BIOMASS_IDER, growth_ub * 1.1) # open a beat helps EP
+        ChU.ub!(model, iJR.BIOMASS_IDER, growth_ub * 1.1) # open a bit helps EP
 
         lock(WLOCK) do
             nzabs_range = ChU.nzabs_range(model.S)
@@ -40,7 +55,7 @@ let
                 exp, method,
                 size(model), nzabs_range, 
                 feasible,
-                threadid()
+                thid
             ); println()
         end
         !feasible && continue
@@ -51,13 +66,7 @@ let
         init_len = length(epouts)
         beta_vec = zeros(N)
         approach_status = get!(dat, :approach_status, :running)
-        if approach_status == :finished 
-            lock(WLOCK) do
-                
-            end
-            continue
-        end
-        convth = 0.05
+        approach_status == :finished && continue
         
         # log approach
         epout_seed = isempty(epouts) ? nothing : epouts[maximum(keys(epouts))]
@@ -67,10 +76,10 @@ let
         for approach in [:log_approach, :linear_approach]
             
             lock(WLOCK) do
-                @info("Starting", 
-                    exp, method, approach, 
+                @info("Starting", approach, 
+                    exp, method,  
                     length(epouts),
-                    threadid()
+                    thid
                 ); println()
             end
 
@@ -83,31 +92,36 @@ let
                 epout = nothing
                 try
                     epout = ChEP.maxent_ep(model; 
-                        beta_vec, alpha = Inf, damp = 0.9, epsconv = 1e-4, 
-                        maxvar = 1e50, minvar = 1e-50, verbose = false, solution = epout_seed,
-                        maxiter = 1000
+                        beta_vec, alpha, damp, maxiter,
+                        epsconv, maxvar, minvar, 
+                        verbose = false,
+                        solution = epout_seed
                     )
                 catch err; end
 
-                # info
+                # stop conditions
                 biom_avPME = isnothing(epout) ? 0.0 : ChU.av(model, epout, biomidx)
+                fail = isnothing(epout) || isnan(biom_avPME) || biom_avPME == 0.0 
+                converr = abs(biom_avPME - exp_growth)/exp_growth
+
+                # info
                 lock(WLOCK) do
-                    @info("Results", exp, method, beta, 
+                    @info("Results", approach, 
+                        exp, method, beta, 
                         exp_growth, growth_ub, biom_avPME, 
+                        converr, convth,
                         length(epouts),
-                        threadid()
+                        thid
                     ); println()
                 end
 
-                # error conditions
-                fail = isnothing(epout) || isnan(biom_avPME) || biom_avPME == 0.0 
+                # error
                 fail && break
 
                 # updating
                 epout_seed = epouts[beta] = epout
 
                 # convergence
-                converr = abs(biom_avPME - exp_growth)/exp_growth
                 conv = converr < convth || biom_avPME > exp_growth 
                 conv && break
 
@@ -117,10 +131,11 @@ let
             update = init_len != length(epouts)
             update && lock(WLOCK) do
                 serialize(datfile, dat)
-                @info("Catching", exp, method,  
+                @info("Catching", approach, 
+                    exp, method,  
                     length(epouts),
                     basename(datfile),
-                    threadid()
+                    thid
                 ); println()
             end
 
@@ -134,14 +149,13 @@ let
 
         # saving
         lock(WLOCK) do
-            
             dat[:approach_status] = :finished
             dat[:model] = model |> ChU.compressed_model
             dat[:exp_beta] = maximum(keys(epouts))
             serialize(datfile, dat)
             @info("Finished", exp, method,  
                 length(epouts),
-                threadid()
+                thid
             ); println()
         end
        
@@ -157,9 +171,20 @@ let
     iterator = Nd.val(:D) |> enumerate |> collect 
     @threads for (exp, D) in iterator
 
-        datfile = INDEX[method, :DFILE, exp]
+        ## -------------------------------------------------------------------
+        # thread globals
+        # ep
+        alpha = Inf
+        damp = 0.9
+        epsconv = 1e-4 # Test
+        maxvar = 1e50
+        minvar = 1e-50
+        maxiter = 1000
+
+        # handle cache
+        datfile = dat_file(;method, exp)
         dat = deserialize(datfile)
-        model, epouts = ChU.uncompressed_model(dat[:model]) , dat[:epouts]
+        model, epouts = ChU.uncompressed_model(dat[:model]), dat[:epouts]
         
         exp_growth = Nd.val(:D, exp)
         exp_beta = maximum(keys(epouts))
@@ -181,9 +206,9 @@ let
                 beta_vec = zeros(size(model, 2)); 
                 beta_vec[biomidx] = exp_beta
                 new_epout = ChEP.maxent_ep(model; 
-                    beta_vec, alpha = Inf, damp = 0.98, epsconv = 1e-4, 
-                    maxvar = 1e50, minvar = 1e-50, verbose = false, 
-                    solution = exp_epout, maxiter = 5000
+                    beta_vec, alpha, damp, epsconv, 
+                    maxvar, minvar, verbose = false, 
+                    solution = exp_epout, maxiter
                 )
             catch err; @warn("ERROR", err); println() end
 

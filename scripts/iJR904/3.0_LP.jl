@@ -29,7 +29,7 @@ end
 
 ## -----------------------------------------------------------------------------------------------
 const FBA_Z_FIX_MIN_COST    = :FBA_Z_FIX_MIN_COST
-const FBA_MAX_BIOM_MIN_COST = :FBA_MAX_BIOM_MIN_COST
+const FBA_MAX_Z_MIN_COST = :FBA_MAX_Z_MIN_COST
 const FBA_Z_FIX_MIN_VG_COST = :FBA_Z_FIX_MIN_VG_COST
 const FBA_Z_VG_FIX_MIN_COST = :FBA_Z_VG_FIX_MIN_COST
 const EXPS = Nd.EXPS
@@ -52,13 +52,13 @@ let
 
         @info("Doing ", exp); println()
 
-        # FBA_MAX_BIOM_MIN_COST
+        # FBA_MAX_Z_MIN_COST
         let
             model = iJR.load_model("fva_models", exp)
             fbaout = ChLP.fba(model, objider, costider)
             
-            LPDAT[FBA_MAX_BIOM_MIN_COST, :model, exp] = model
-            LPDAT[FBA_MAX_BIOM_MIN_COST, :fbaout, exp] = fbaout
+            LPDAT[FBA_MAX_Z_MIN_COST, :model, exp] = model
+            LPDAT[FBA_MAX_Z_MIN_COST, :fbaout, exp] = fbaout
         end
         
         # FBA_Z_FIX_MIN_COST

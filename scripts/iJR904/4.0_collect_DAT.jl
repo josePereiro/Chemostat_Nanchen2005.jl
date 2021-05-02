@@ -31,6 +31,8 @@ end
 
 ## ----------------------------------------------------------------------------------
 DAT = ChU.DictTree();
+# DAT_FILE = iJR.procdir("dat.bson")
+# DAT = UJL.load_data(DAT_FILE)
 
 # ----------------------------------------------------------------------------------
 FLX_IDERS = ["GLC", "AC"]
@@ -47,24 +49,24 @@ const ME_Z_FIXXED_G_BOUNDED   = :ME_Z_FIXXED_G_BOUNDED
 
 # LP methods
 const FBA_Z_FIX_MIN_COST      = :FBA_Z_FIX_MIN_COST
-const FBA_MAX_BIOM_MIN_COST   = :FBA_MAX_BIOM_MIN_COST
+const FBA_MAX_Z_MIN_COST   = :FBA_MAX_Z_MIN_COST
 const FBA_Z_FIX_MIN_VG_COST   = :FBA_Z_FIX_MIN_VG_COST
 const FBA_Z_VG_FIX_MIN_COST   = :FBA_Z_VG_FIX_MIN_COST
 
 LP_METHODS = [
     FBA_Z_FIX_MIN_COST, 
-    # FBA_MAX_BIOM_MIN_COST, 
-    # FBA_Z_FIX_MIN_VG_COST, 
-    # FBA_Z_VG_FIX_MIN_COST
+    FBA_MAX_Z_MIN_COST, 
+    FBA_Z_FIX_MIN_VG_COST, 
+    FBA_Z_VG_FIX_MIN_COST
 ]
 DAT[:LP_METHODS] = LP_METHODS
 
 ME_METHODS = [
     # ME_Z_OPEN_G_OPEN, 
+    ME_Z_EXPECTED_G_BOUNDED, 
     ME_MAX_POL,
     ME_MAX_POL_B0,
     # ME_Z_FIXXED_G_BOUNDED, 
-    # ME_Z_EXPECTED_G_BOUNDED, 
     # ME_Z_EXPECTED_G_MOVING
 ]
 DAT[:ME_METHODS] = ME_METHODS
@@ -80,8 +82,8 @@ LP_DAT_FILE = iJR.procdir("lp_dat_file.bson")
 LP_DAT = ChU.load_data(LP_DAT_FILE; verbose = false);
 
 # ----------------------------------------------------------------------------------
-Fd_mets_map = iJR.load_mets_map()
-Fd_rxns_map = iJR.load_rxns_map();
+Nd_mets_map = iJR.load_mets_map()
+Nd_rxns_map = iJR.load_rxns_map();
 
 # ----------------------------------------------------------------------------------
 const DAT_FILE_PREFFIX =  "maxent_ep_dat"
@@ -98,8 +100,8 @@ let
 
     for exp in EXPS
         # exp dat
-        Fd_biom = Nd.val("D", exp)
-        DAT[:exp, :flx, "D", exp] = Fd_biom
+        Nd_biom = Nd.val("D", exp)
+        DAT[:exp, :flx, "D", exp] = Nd_biom
         DAT[:exp, :err, "D", exp] = 0.0
 
         # bounds
@@ -110,70 +112,41 @@ let
         ub = min(max_ub, fva_ub)
         DAT[:bounds, "D", exp] = (lb, ub)
 
-        for Fd_ider in FLX_IDERS
-            model_exch = Fd_rxns_map[Fd_ider]
+        for Nd_ider in FLX_IDERS
+            model_exch = Nd_rxns_map[Nd_ider]
 
             # exp dat
-            Fd_flx = Nd.uval(Fd_ider, exp)
-            DAT[:exp, :flx, Fd_ider, exp] = Fd_flx
-            DAT[:exp, :err, Fd_ider, exp] = 0.0
+            Nd_flx = Nd.uval(Nd_ider, exp)
+            Nd_err = Nd.uerr(Nd_ider, exp)
+            DAT[:exp, :flx, Nd_ider, exp] = Nd_flx
+            DAT[:exp, :err, Nd_ider, exp] = Nd_err
 
             # bounds
             max_lb, max_ub = ChU.bounds(max_model, model_exch)
             fva_lb, fva_ub = ChU.bounds(fva_model, model_exch)
             lb = max(max_lb, fva_lb)
             ub = min(max_ub, fva_ub)
-            DAT[:bounds, Fd_ider, exp] = (lb, ub)
+            DAT[:bounds, Nd_ider, exp] = (lb, ub)
 
         end
+
+        # all exglcider
+        for Nd_ider in Nd.DAT_IDERS
+
+            val = Nd.val(Nd_ider, exp)
+            err = Nd.err(Nd_ider, exp)
+
+            DAT[:exp, :flx, Nd_ider, exp] = val
+            DAT[:exp, :err, Nd_ider, exp] = err
+        end
+
     end
 end
 
-# ## ----------------------------------------------------------------------------------
-# # Dev
-# let
-    
-#     # In addition to a better quantitative match overall, the
-#     # maximum entropy model correctly predicted non-zero flux
-#     # through the glyoxylate shunt, i.e., for the isocitrate lyase (ICL)
-#     # as well as ME1 reactions, which FBA misses qualitatively by
-#     # setting them to zero. As a consequence, this also leads to a better
-#     # match of our model with data for reactions isocitrate dehydrogenase 
-#     # (ICDH) and alpha ketoglutarate dehydrogenase
-#     # (AKGDH) that channel pyruvate through the Krebs cycle.
-    
-#     # ICL
-#     # ME1
-
-#     exp = 4
-#     method = ME_MAX_POL
-#     # method = ME_MAX_POL_B0
-    
-#     datfile = dat_file(;method, exp)
-#     # datfile = dat_file(;method)
-#     dat = deserialize(datfile)
-            
-#     model = dat[:model]
-#     epouts = dat[:epouts]
-#     exp_beta = maximum(keys(epouts)) # dat[:exp_beta]
-#     epout = epouts[exp_beta]
-
-#     exglc = ChU.av(model, epout, iJR.EX_GLC_IDER)
-#     for (ider, model_iders) in iJR.kreps_idermap
-        
-#         flx = ChU.av(model, epout, model_iders[1])/ abs(exglc)
-#         if length(model_iders) == 2 # reversible
-#             flx -= ChU.av(model, epout, model_iders[2])/ abs(exglc)
-#         end
-#         @show ider flx
-#         println()
-#     end
-# end
 
 ## ----------------------------------------------------------------------------------
 # MAXENT DAT
 let 
-    return
     WLOCK = ReentrantLock()
     objider = iJR.BIOMASS_IDER
 
@@ -231,8 +204,8 @@ let
                 DAT[depks(method, :err, "D", exp)...] = ep_std
             end
 
-            for Fd_met in FLX_IDERS
-                model_exch = Fd_rxns_map[Fd_met]
+            for Nd_met in FLX_IDERS
+                model_exch = Nd_rxns_map[Nd_met]
 
                 # flxs
                 ep_av = ChU.av(model, epout, model_exch)
@@ -242,34 +215,35 @@ let
                 proj = ChLP.projection2D(model, objider, model_exch; l = 50)
                         
                 lock(WLOCK) do
-                    DAT[depks(method, :proj, Fd_met, exp)...] = proj
-                    DAT[depks(method, :flx, Fd_met, exp)...] = ep_av
-                    DAT[depks(method, :err, Fd_met, exp)...] = ep_std
+                    DAT[depks(method, :proj, Nd_met, exp)...] = proj
+                    DAT[depks(method, :flx, Nd_met, exp)...] = ep_av
+                    DAT[depks(method, :err, Nd_met, exp)...] = ep_std
                 end
             end
 
             # inner flxs
             idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
-            for (ider, model_iders) in idermap
+            for (exglcider, model_iders) in idermap
                 # flxs
                 ep_av = ChU.av(model, epout, model_iders[1])
                 ep_std = sqrt(ChU.va(model, epout, model_iders[1]))
                 if length(model_iders) == 2 # reversible
                     # r = r+ - r-
                     ep_av -= ChU.av(model, epout, model_iders[2])
-                    ep_std += sqrt(ChU.va(model, epout, model_iders[2]))
+                    # ep_std += sqrt(ChU.va(model, epout, model_iders[2]))
+                    ep_std = NaN
                 end
 
                 # proj 2d (fwd only)
                 proj = ChLP.projection2D(model, objider, model_iders[1]; l = 50)
-                        
+                
                 lock(WLOCK) do
-                    DAT[depks(method, :proj, ider, exp)...] = proj
-                    DAT[depks(method, :flx, ider, exp)...] = ep_av
-                    DAT[depks(method, :err, ider, exp)...] = ep_std
+                    DAT[depks(method, :proj, exglcider, exp)...] = proj
+                    DAT[depks(method, :flx, exglcider, exp)...] = ep_av
+                    DAT[depks(method, :err, exglcider, exp)...] = ep_std
                 end
             end
-
+        
         end # for (exp, method)
     end # for thid
 end
@@ -290,15 +264,15 @@ let
             fba_flx = ChU.av(model, fbaout, objider)
             DAT[method, :flx, "D", exp] = fba_flx
 
-            for Fd_ider in FLX_IDERS
-                model_ider = Fd_rxns_map[Fd_ider]
+            for Nd_ider in FLX_IDERS
+                model_ider = Nd_rxns_map[Nd_ider]
 
                 fba_flx = ChU.av(model, fbaout, model_ider)
-                DAT[method, :flx, Fd_ider, exp] = fba_flx
+                DAT[method, :flx, Nd_ider, exp] = fba_flx
             end
 
             idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
-            for (ider, model_iders) in idermap
+            for (exglcider, model_iders) in idermap
                 # flxs
                 fba_flx = ChU.av(model, fbaout, model_iders[1])
                 if length(model_iders) == 2 # reversible
@@ -306,7 +280,7 @@ let
                     fba_flx -= ChU.av(model, fbaout, model_iders[2])
                 end
                         
-                DAT[method, :flx, ider, exp] = fba_flx
+                DAT[method, :flx, exglcider, exp] = fba_flx
             end
         end
 

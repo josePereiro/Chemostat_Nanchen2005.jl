@@ -205,7 +205,7 @@ function _populate_TABLE2()
 
     TABLE2["uGLC"] = Dict(
         "unit" => "mmol/ gDW hr",
-        "val" => [0.9, 1.2, 1.1, 1.7, 1.7, 1.8, 1.8, 2.0, 2.0, 2.8, 2.8, 4.2, 4.2, 4.6, 4.6, 5.7, 5.8],
+        "val" => -[0.9, 1.2, 1.1, 1.7, 1.7, 1.8, 1.8, 2.0, 2.0, 2.8, 2.8, 4.2, 4.2, 4.6, 4.6, 5.7, 5.8],
         "err" => [0.1, 0.2, 0.2, 0.2, 0.2, 0.2, 1.2, 0.3, 0.3, 0.2, 0.2, 0.3, 0.4, 0.3, 0.3, 0.3, 0.3]
     )
 
@@ -215,6 +215,18 @@ function _populate_TABLE2()
         "err" => [0.01, 0.01, 0.0, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.02]
     )
 end
+
+## -------------------------------------------------------------------
+const DAT_IDERS = [
+    "GLC + ATP -> G6P", "Biomass", "PEP -> PYR + ATP", "FUM -> MAL", 
+    "AcCoA -> Acetate + ATP", "O2 + 2NADH -> 2P/O x ATP", "G6P -> 6PG + NADPH", 
+    "T3P -> PGA + ATP + NADH", "S7P + T3P -> E4P + F6P", "MAL -> OAA + NADH", 
+    "PYR -> AcCoA + CO2 + NADH", "xi", "PGA -> PEP", "P5P + E4P -> F6P + T3P", 
+    "F6P + ATP -> 2T3P", "ICT + AcCoA -> MAL + FUM + NADH", "X", "MAL -> PYR + CO2 + NADH", 
+    "uGLC", "PEP + CO2 -> OAA", "D", "NADPH -> NADH", "uAC", "OGA -> FUM + CO2 + 1.5*ATP + 2NADH", 
+    "cGLC", "ICT -> OGA + CO2 + NADPH", "G6P -> F6P", "OAA + AcCoA -> ICT", "6PG -> T3P + PYR", 
+    "2P5P -> S7P + T3P", "6PG -> P5P + CO2 + NADPH", "OAA + ATP -> PEP + CO2"
+]
 
 ## -------------------------------------------------------------------
 # BUNDLE

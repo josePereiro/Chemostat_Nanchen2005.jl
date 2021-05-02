@@ -40,8 +40,8 @@ const DAT_FILE_PREFFIX = "maxent_ep_dat"
 ## ----------------------------------------------------------------------------
 const ME_Z_OPEN_G_OPEN          = :ME_Z_OPEN_G_OPEN           # Do not use extra constraints
 const ME_MAX_POL                = :ME_MAX_POL                 # 
-const ME_MAX_POL_B0             = :ME_MAX_POL_B0                 # 
-const ME_Z_EXPECTED_G_EXPECTED  = :ME_Z_EXPECTED_G_EXPECTED    # Match ME and Dy biom average and constraint av_ug
+const ME_MAX_POL_B0             = :ME_MAX_POL_B0              # 
+const ME_Z_EXPECTED_G_EXPECTED  = :ME_Z_EXPECTED_G_EXPECTED   # Match ME and Dy biom average and constraint av_ug
 const ME_Z_EXPECTED_G_BOUNDED   = :ME_Z_EXPECTED_G_BOUNDED    # Match ME and Dy biom average and constraint av_ug
 const ME_Z_EXPECTED_G_MOVING    = :ME_Z_EXPECTED_G_MOVING     # 
 const ME_Z_FIXXED_G_BOUNDED     = :ME_Z_FIXXED_G_BOUNDED      # Fix biom around observed
@@ -64,7 +64,7 @@ end
 
 ## -------------------------------------------------------------------
 # ME_MAX_POL
-include("2.0.1_ME_MAX_POL.jl")
+# include("2.0.1_ME_MAX_POL.jl")
 
 # ## -------------------------------------------------------------------
 # # ME_Z_EXPECTED_G_EXPECTED
@@ -75,7 +75,7 @@ include("2.0.1_ME_MAX_POL.jl")
 # include("2.0.3_ME_Z_EXPECTED_G_MOVING.jl")
 
 # ## ----------------------------------------------------------------------------
-# include("2.0.4_ME_Z_EXPECTED_G_BOUNDED.jl")
+include("2.0.4_ME_Z_EXPECTED_G_BOUNDED.jl")
 
 # ## ----------------------------------------------------------------------------
 # # ME_Z_FIXXED_G_BOUNDED
@@ -87,4 +87,4 @@ include("2.0.1_ME_MAX_POL.jl")
 
 ## ----------------------------------------------------------------------------
 # ME_MAX_POL_B0
-include("2.0.7_ME_MAX_POL_B0.jl")
+# include("2.0.7_ME_MAX_POL_B0.jl")
