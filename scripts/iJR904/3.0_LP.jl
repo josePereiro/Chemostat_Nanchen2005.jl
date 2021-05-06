@@ -29,7 +29,8 @@ end
 
 ## -----------------------------------------------------------------------------------------------
 const FBA_Z_FIX_MIN_COST    = :FBA_Z_FIX_MIN_COST
-const FBA_MAX_Z_MIN_COST = :FBA_MAX_Z_MIN_COST
+const FBA_MAX_Z_MIN_COST    = :FBA_MAX_Z_MIN_COST
+const FBA_Z_FIX_MAX_VG_MIN_COST = :FBA_Z_FIX_MAX_VG_MIN_COST
 const FBA_Z_FIX_MIN_VG_COST = :FBA_Z_FIX_MIN_VG_COST
 const FBA_Z_VG_FIX_MIN_COST = :FBA_Z_VG_FIX_MIN_COST
 const EXPS = Nd.EXPS
@@ -51,10 +52,11 @@ let
     for (exp, D) in iterator
 
         @info("Doing ", exp); println()
+        model0 = iJR.load_model("fva_models", exp)
 
         # FBA_MAX_Z_MIN_COST
         let
-            model = iJR.load_model("fva_models", exp)
+            model = deepcopy(model0)
             fbaout = ChLP.fba(model, objider, costider)
             
             LPDAT[FBA_MAX_Z_MIN_COST, :model, exp] = model
@@ -63,7 +65,7 @@ let
         
         # FBA_Z_FIX_MIN_COST
         let
-            model = iJR.load_model("fva_models", exp)
+            model = deepcopy(model0)
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
             fbaout = ChLP.fba(model, objider, costider)
@@ -74,10 +76,10 @@ let
 
         # FBA_Z_FIX_MIN_VG_COST
         let
-            model = iJR.load_model("fva_models", exp)
+            model = deepcopy(model0)
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
-            fbaout1 = ChLP.fba(model, exglcider; sense = max_sense)
+            fbaout1 = ChLP.fba(model, exglcider; sense = min_sense)
             exglc = ChU.av(model, fbaout1, exglcider)
             ChU.bounds!(model, exglcider, exglc, exglc)
             fbaout = ChLP.fba(model, costider; sense = min_sense)
@@ -86,9 +88,23 @@ let
             LPDAT[FBA_Z_FIX_MIN_VG_COST, :fbaout, exp] = fbaout
         end
 
+        # FBA_Z_FIX_MAX_VG_MIN_COST
+        let
+            model = deepcopy(model0)
+            exp_growth = Nd.val("D", exp)
+            ChU.bounds!(model, objider, exp_growth, exp_growth)
+            fbaout1 = ChLP.fba(model, exglcider; sense = max_sense)
+            exglc = ChU.av(model, fbaout1, exglcider)
+            ChU.bounds!(model, exglcider, exglc, exglc)
+            fbaout = ChLP.fba(model, costider; sense = min_sense)
+
+            LPDAT[FBA_Z_FIX_MAX_VG_MIN_COST, :model, exp] = model
+            LPDAT[FBA_Z_FIX_MAX_VG_MIN_COST, :fbaout, exp] = fbaout
+        end
+
         # FBA_Z_VG_FIX_MIN_COST
         let
-            model = iJR.load_model("fva_models", exp)
+            model = deepcopy(model0)
         
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
