@@ -29,6 +29,7 @@ end
 
 ## -----------------------------------------------------------------------------------------------
 const FBA_Z_FIX_MIN_COST    = :FBA_Z_FIX_MIN_COST
+const FBA_Z_FIX_MAX_COST    = :FBA_Z_FIX_MAX_COST
 const FBA_MAX_Z_MIN_COST    = :FBA_MAX_Z_MIN_COST
 const FBA_Z_FIX_MAX_VG_MIN_COST = :FBA_Z_FIX_MAX_VG_MIN_COST
 const FBA_Z_FIX_MIN_VG_COST = :FBA_Z_FIX_MIN_VG_COST
@@ -68,10 +69,21 @@ let
             model = deepcopy(model0)
             exp_growth = Nd.val("D", exp)
             ChU.bounds!(model, objider, exp_growth, exp_growth)
-            fbaout = ChLP.fba(model, objider, costider)
+            fbaout = ChLP.fba(model, costider; sense = min_sense)
 
             LPDAT[FBA_Z_FIX_MIN_COST, :model, exp] = model
             LPDAT[FBA_Z_FIX_MIN_COST, :fbaout, exp] = fbaout
+        end
+
+        # FBA_Z_FIX_MAX_COST
+        let
+            model = deepcopy(model0)
+            exp_growth = Nd.val("D", exp)
+            ChU.bounds!(model, objider, exp_growth, exp_growth)
+            fbaout = ChLP.fba(model, costider; sense = max_sense)
+
+            LPDAT[FBA_Z_FIX_MAX_COST, :model, exp] = model
+            LPDAT[FBA_Z_FIX_MAX_COST, :fbaout, exp] = fbaout
         end
 
         # FBA_Z_FIX_MIN_VG_COST

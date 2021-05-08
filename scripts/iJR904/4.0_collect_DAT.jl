@@ -1,6 +1,36 @@
 import DrWatson: quickactivate
 quickactivate(@__DIR__, "Chemostat_Nanchen2006")
 
+# ----------------------------------------------------------------------------
+## ARGS
+using ArgParse
+
+set = ArgParseSettings()
+@add_arg_table! set begin
+    "--new-dat"
+        help = "ignore disk stored DAT"   
+        action = :store_true
+    "--skip-me"
+        help = "do not recompute MaxEnt part"   
+        action = :store_true
+    "--skip-lp"
+        help = "do not recompute LP part"   
+        action = :store_true
+end
+
+if isinteractive()
+    # Dev values
+    new_dat = false
+    skip_lp = false
+    skip_me = false
+else
+    parsed_args = parse_args(set)
+    new_dat = parsed_args["new-dat"]
+    skip_lp = parsed_args["skip-lp"]
+    skip_me = parsed_args["skip-me"]
+end
+
+# ----------------------------------------------------------------------------
 @time begin
     import SparseArrays
     import Base.Threads: @threads, threadid, SpinLock
@@ -30,9 +60,9 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
 end
 
 ## ----------------------------------------------------------------------------------
-DAT = ChU.DictTree();
-# DAT_FILE = iJR.procdir("dat.bson")
-# DAT = UJL.load_data(DAT_FILE)
+# setup container
+DAT_FILE = iJR.procdir("dat.bson")
+DAT = (!isfile(DAT_FILE) || new_dat) ? ChU.DictTree() : UJL.load_data(DAT_FILE)
 
 # ----------------------------------------------------------------------------------
 FLX_IDERS = ["GLC", "AC"]
@@ -48,16 +78,20 @@ const ME_Z_EXPECTED_G_BOUNDED = :ME_Z_EXPECTED_G_BOUNDED
 const ME_Z_FIXXED_G_BOUNDED   = :ME_Z_FIXXED_G_BOUNDED
 
 # LP methods
-const FBA_Z_FIX_MIN_COST      = :FBA_Z_FIX_MIN_COST
-const FBA_MAX_Z_MIN_COST   = :FBA_MAX_Z_MIN_COST
-const FBA_Z_FIX_MIN_VG_COST   = :FBA_Z_FIX_MIN_VG_COST
-const FBA_Z_VG_FIX_MIN_COST   = :FBA_Z_VG_FIX_MIN_COST
+const FBA_Z_FIX_MIN_COST    = :FBA_Z_FIX_MIN_COST
+const FBA_Z_FIX_MAX_COST    = :FBA_Z_FIX_MAX_COST
+const FBA_MAX_Z_MIN_COST        = :FBA_MAX_Z_MIN_COST
+const FBA_Z_FIX_MIN_VG_COST     = :FBA_Z_FIX_MIN_VG_COST
+const FBA_Z_VG_FIX_MIN_COST     = :FBA_Z_VG_FIX_MIN_COST
+const FBA_Z_FIX_MAX_VG_MIN_COST = :FBA_Z_FIX_MAX_VG_MIN_COST
 
 LP_METHODS = [
+    FBA_Z_FIX_MIN_COST,
     FBA_Z_FIX_MIN_COST, 
     FBA_MAX_Z_MIN_COST, 
     FBA_Z_FIX_MIN_VG_COST, 
-    FBA_Z_VG_FIX_MIN_COST
+    FBA_Z_VG_FIX_MIN_COST,
+    FBA_Z_FIX_MAX_VG_MIN_COST
 ]
 DAT[:LP_METHODS] = LP_METHODS
 
@@ -66,7 +100,7 @@ ME_METHODS = [
     ME_Z_EXPECTED_G_BOUNDED, 
     ME_MAX_POL,
     ME_MAX_POL_B0,
-    # ME_Z_FIXXED_G_BOUNDED, 
+    # ME_Z_FIXXED_G_BOUNDED,
     # ME_Z_EXPECTED_G_MOVING
 ]
 DAT[:ME_METHODS] = ME_METHODS
@@ -77,20 +111,9 @@ DAT[:ALL_METHODS] = ALL_METHODS
 EXPS = Nd.EXPS
 DAT[:EXPS] = EXPS;
 
-# -------------------------------------------------------------------
-LP_DAT_FILE = iJR.procdir("lp_dat_file.bson")
-LP_DAT = ChU.load_data(LP_DAT_FILE; verbose = false);
-
 # ----------------------------------------------------------------------------------
 Nd_mets_map = iJR.load_mets_map()
 Nd_rxns_map = iJR.load_rxns_map();
-
-# ----------------------------------------------------------------------------------
-const DAT_FILE_PREFFIX =  "maxent_ep_dat"
-function dat_file(;kwargs...)
-    fname = UJL.mysavename(DAT_FILE_PREFFIX, "jls"; kwargs...)
-    iJR.procdir(fname)
-end
 
 ## ----------------------------------------------------------------------------------
 # COMMON DAT
@@ -146,7 +169,15 @@ end
 
 ## ----------------------------------------------------------------------------------
 # MAXENT DAT
-let 
+!skip_me && let 
+
+    # ME data
+    DAT_FILE_PREFFIX =  "maxent_ep_dat"
+    function dat_file(;kwargs...)
+        fname = UJL.mysavename(DAT_FILE_PREFFIX, "jls"; kwargs...)
+        iJR.procdir(fname)
+    end
+
     WLOCK = ReentrantLock()
     objider = iJR.BIOMASS_IDER
 
@@ -250,7 +281,11 @@ end
 
 ## ----------------------------------------------------------------------------------
 # LP DAT
-let
+!skip_lp && let
+
+    LP_DAT_FILE = iJR.procdir("lp_dat_file.bson")
+    LP_DAT = ChU.load_data(LP_DAT_FILE; verbose = false);
+
     objider = iJR.BIOMASS_IDER
 
     for method in LP_METHODS
