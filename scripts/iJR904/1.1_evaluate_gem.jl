@@ -90,6 +90,7 @@ let
     for (exp, D) in to_map
 
         model = BASE_MODELS["fva_models"][exp]
+        # model = BASE_MODELS["max_model"]
 
         fbaout = ChLP.fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER);
         fba_obj_val = ChU.av(model, fbaout, iJR.BIOMASS_IDER)

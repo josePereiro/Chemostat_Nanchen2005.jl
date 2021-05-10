@@ -87,7 +87,7 @@ const FBA_Z_FIX_MAX_VG_MIN_COST = :FBA_Z_FIX_MAX_VG_MIN_COST
 
 LP_METHODS = [
     FBA_Z_FIX_MIN_COST,
-    FBA_Z_FIX_MIN_COST, 
+    FBA_Z_FIX_MAX_COST, 
     FBA_MAX_Z_MIN_COST, 
     FBA_Z_FIX_MIN_VG_COST, 
     FBA_Z_VG_FIX_MIN_COST,
@@ -254,7 +254,7 @@ end
 
             # inner flxs
             idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
-            for (exglcider, model_iders) in idermap
+            for (exider, model_iders) in idermap
                 # flxs
                 ep_av = ChU.av(model, epout, model_iders[1])
                 ep_std = sqrt(ChU.va(model, epout, model_iders[1]))
@@ -269,9 +269,9 @@ end
                 proj = ChLP.projection2D(model, objider, model_iders[1]; l = 50)
                 
                 lock(WLOCK) do
-                    DAT[depks(method, :proj, exglcider, exp)...] = proj
-                    DAT[depks(method, :flx, exglcider, exp)...] = ep_av
-                    DAT[depks(method, :err, exglcider, exp)...] = ep_std
+                    DAT[depks(method, :proj, exider, exp)...] = proj
+                    DAT[depks(method, :flx, exider, exp)...] = ep_av
+                    DAT[depks(method, :err, exider, exp)...] = ep_std
                 end
             end
         

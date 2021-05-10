@@ -9,13 +9,14 @@ let
 
     # Feed jobs
     Ch = Channel(nthreads()) do ch
-        cGLCs = Nd.val("cGLC")
+        cGLCs = Nd.val("cGLC")[1:1] # Test
         for (exp, cGLC)  in enumerate(cGLCs)
             put!(ch, (exp, cGLC))
         end
     end
 
-    @threads for _ in 1:nthreads()
+    # @threads 
+    for _ in 1:nthreads()
         thid = threadid()
         for (exp, cGLC) in Ch
             
@@ -26,7 +27,7 @@ let
 
             ## -------------------------------------------------------------------
             # SetUp
-            model =  iJR.load_model("max_model")
+            model = iJR.load_model("max_model")
             M, N = size(model)
             biomidx = ChU.rxnindex(model, iJR.BIOMASS_IDER)
             glcidx = ChU.rxnindex(model, iJR.EX_GLC_IDER)
@@ -50,6 +51,7 @@ let
             isbeta_stationary = false # a flag that indicates if betas reach stability
             roundconv = false # global (round) converge flag
 
+            ## ----------------------------------------------------
             epmaxiter = 2000 # maxiter for each maxent_ep
             gdmaxiter = 3000 # maxiter for each gradient descent
             gdth = 0.01  # th of each gradient descend
@@ -118,6 +120,40 @@ let
                 any(isnan.(params))
             end
 
+            ## ----------------------------------------------------
+            # Dev
+            beta_vec[glcidx] = 1e2
+            epout = ChEP.maxent_ep(model; 
+                alpha = Inf, 
+                beta_vec,
+                verbose = true
+            )
+            biom_avPME = ChU.av(model, epout, iJR.BIOMASS_IDER)
+            vg_avPME = ChU.av(model, epout, iJR.EX_GLC_IDER)
+            biom_diff = abs(biom_avPME - exp_growth)
+            vg_diff = abs(vg_avPME - cgD_X)
+            print_info("Test")
+
+            fbaout = ChLP.fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER);
+            fba_obj_val = ChU.av(model, fbaout, iJR.BIOMASS_IDER)
+            fba_obj_val = ChU.av(model, fbaout, iJR.BIOMASS_IDER)
+            fba_ex_glc_val = ChU.av(model, fbaout, iJR.EX_GLC_IDER)
+            fba_ex_glc_b = ChU.bounds(model, iJR.EX_GLC_IDER)
+            exp_obj_val = Nd.val("D", exp)
+
+            ChU.tagprintln_inmw("FBA SOLUTION", 
+                "\nobj_ider:                ", iJR.BIOMASS_IDER,
+                "\nfba fba_ex_glc_val:      ", fba_ex_glc_val,
+                "\nfba fba_ex_glc_b:        ", fba_ex_glc_b,
+                "\nfba obj_val:             ", fba_obj_val,
+                "\nexp obj_val:             ", exp_obj_val,
+                "\ncost_ider:               ", iJR.COST_IDER,
+                "\nfba cost_val:            ", ChU.av(model, fbaout, iJR.COST_IDER),
+                "\n\n"
+            )
+            
+            return 
+
             ## -------------------------------------------------------------------
             function gd_core_fun(gdmodel; msg)
 
@@ -129,7 +165,8 @@ let
                     beta_vec,
                     alpha = Inf,
                     maxiter = epmaxiter,  
-                    epsconv = 1e-3, 
+                    # epsconv = 1e-3, 
+                    epsconv = 1e-1, # Test
                     verbose = false, 
                     solution = epout
                 )
@@ -278,7 +315,6 @@ let
                 # COLLECTING
                 push!(biom_betas, biom_beta)
                 push!(vg_betas, vg_beta)
-                empty!(epouts) # Test
                 epouts[(biom_beta, vg_beta)] = epout
 
                 ## -------------------------------------------------------------------

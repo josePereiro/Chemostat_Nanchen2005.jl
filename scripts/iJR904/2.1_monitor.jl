@@ -29,6 +29,8 @@ let
     mon = UJL.OnDiskMonitor(iJR.cachedir(), "monitor.jld2")
     live_proves = Dict()
 
+    mean_min_val, mean_max_val = -1e2, 1e2
+
     UJL.watch(mon; wt = 15.0) do ddat
 
         isempty(ddat) && return
@@ -51,11 +53,14 @@ let
                             (:vg_avPME, :cgD_X), 
                             (:biom_avPME, :exp_growth), 
                         ]
+
                     avdat = get(kdat, avk, [])
+                    clamp!(avdat, mean_min_val, mean_max_val)
                     p = plot(avdat;  title = string(avk), 
                         xlabel = "iter", ylabel = string(avk), 
                         lw = 3, label = string(avk)
                     )
+
                     limdat = get(tdat, limk, 0.0)
                     hline!(p, [limdat]; label = string(limk), 
                         lw = 3, ls = :dash, color = :black, 
