@@ -224,17 +224,14 @@ function load_base_intake_info()
         "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
         "EX_so4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+        "EX_h_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
     )
 end
 
 function intake_info(exp)
-    return Dict(
-        "EX_glc_LPAREN_e_RPAREN_" => Dict("c"=> Nd.val(:cGLC, exp), "lb"=> -ABS_MAX_BOUND),
-        "EX_nh4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_so4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-    )
+    intake_info = load_base_intake_info();
+    intake_info["EX_glc_LPAREN_e_RPAREN_"] = Dict("c"=> Nd.val(:cGLC, exp), "lb"=> -ABS_MAX_BOUND)
+    return intake_info
 end
 
 function load_krebs_iders()

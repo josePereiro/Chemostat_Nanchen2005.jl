@@ -18,6 +18,7 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     const ChU = Ch.Utils
     const ChSS = Ch.SteadyState
     const ChLP = Ch.LP
+    const ChEP = Ch.MaxEntEP
 
 end
 
@@ -147,13 +148,14 @@ ChSS.apply_bound!(model, xi, intake_info; emptyfirst = true)
 # tot_cost is the exchange that controls the bounds of the 
 # enzimatic cost contraint, we bound it to [0, 1.0]
 ChU.lb!(model, cost_exch_id, 0.0);
-ChU.ub!(model, cost_exch_id, 1.0);
+ChU.ub!(model, cost_exch_id, 5.0); # heuristic: cost <= 1.0 is to restrict for EP to converge
 
 # -------------------------------------------------------------------
+# Heuristic
 # GLCpts (Adenosine exchange)
 # This reaction is overpassing HEX1, I don't know why is here. Closing it!!!
 # (-1.0) glc_DASH_D_e + (-1.0) pep_c + (-0.0031) cost ==> (1.0) g6p_c + (1.0) pyr_c
-ChU.bounds!(model, "GLCpts", 0.0, 0.0)
+ChU.bounds!(model, "GLCpts", 0.0, 0.0) # This will be eliminated at fva_preprocessing
 
 # -------------------------------------------------------------------
 model = ChU.fix_dims(model)
@@ -182,7 +184,8 @@ end
 BASE_MODELS = Dict{Any, Any}()
 
 # -------------------------------------------------------------------
-# BASE MODEL
+# BASE MODELS
+MODELS_FILE = iJR.procdir("base_models.bson")
 BASE_MODELS["base_model"] = ChU.compressed_model(model);
 
 # -------------------------------------------------------------------
@@ -202,14 +205,13 @@ BASE_MODELS["scl_base_model"] = ChU.compressed_model(scl_base_model);
 ## -------------------------------------------------------------------
 # contextualized models
 let
-    return
     for (exp, D) in Nd.val(:D) |> enumerate
 
         FVA_EXP_MODELS = get!(BASE_MODELS, "fva_exp_models", Dict())
         ChU.tagprintln_inmw("DOING FVA", 
             "\nexp:             ", exp,
             "\nD:               ", D,
-            "\ncProgress:       ", length(DAT),
+            "\ncProgress:       ", length(FVA_EXP_MODELS),
             "\n"
         )
         haskey(FVA_EXP_MODELS, exp) && continue # cached
@@ -251,7 +253,6 @@ let
 
     ChU.tagprintln_inmw("DOING MAX MODEL", "\n")
 
-    scale_factor = 1000.0
     scl_model = deepcopy(scl_base_model)
     
     # Biomass
@@ -275,6 +276,7 @@ let
     ) |> ChU.fix_dims
 
     ## -------------------------------------------------------------------
+    # FBA Test
     test_model = deepcopy(max_model)
     for (exp, D) in Nd.val(:D) |> enumerate
         cgD_X = Nd.cval(:GLC, exp) * Nd.val(:D, exp) / Nd.val(:X, exp)
@@ -282,115 +284,23 @@ let
         fbaout = ChLP.fba(test_model, iJR.BIOMASS_IDER, iJR.COST_IDER)
         biom = ChU.av(test_model, fbaout, iJR.BIOMASS_IDER)
         cost = ChU.av(test_model, fbaout, iJR.COST_IDER)
-        @info("Test", exp, cgD_X, D, biom, cost); println()
+        exglc = ChU.av(test_model, fbaout, iJR.EX_GLC_IDER)
+        hex1 = ChU.av(test_model, fbaout, "HEX1")
+        @info("FBA Test", exp, cgD_X, D, biom, cost, exglc, hex1); println()
     end
+
+    ## -------------------------------------------------------------------
+    # MaxEnt Test
+    test_model = deepcopy(max_model)
+    epout = ChEP.maxent_ep(test_model; epsconv = 1e-4, maxiter = 500)
+    biom = ChU.av(test_model, epout, iJR.BIOMASS_IDER)
+    cost = ChU.av(test_model, epout, iJR.COST_IDER)
+    exglc = ChU.av(test_model, epout, iJR.EX_GLC_IDER)
+    hex1 = ChU.av(test_model, epout, "HEX1")
+    @info("EP Test", biom, cost, exglc, hex1); println()
 
     ## -------------------------------------------------------------------
     # saving
     BASE_MODELS["max_model"] = ChU.compressed_model(max_model)
     ChU.save_data(MODELS_FILE, BASE_MODELS)
 end;
-
-
-## -------------------------------------------------------------------
-using Test
-using ProgressMeter
-using Base.Threads
-const ChEP = Ch.MaxEntEP
-using Statistics
-
-let
-    orig_model = deepcopy(model)
-    scl_model = BASE_MODELS["max_model"] |> deepcopy |> ChU.fix_dims |> ChU.uncompressed_model
-
-    for model_ in [orig_model, scl_model]
-        @info("MaxEnt Test $("-"^40)", size(model_))
-        epout = ChEP.maxent_ep(model_; epsconv = 1e-3, maxiter = 300)
-        exglc = ChU.av(model_, epout, iJR.EX_GLC_IDER)
-        objval = ChU.av(model_, epout, iJR.BIOMASS_IDER)
-        @show exglc objval
-        # ChU.summary(model_, iJR.BIOMASS_IDER)
-        errs = abs.(ChU.stoi_err(model_, epout))
-        @show maximum(errs) / exglc
-        @show minimum(errs) / exglc
-        @show mean(errs) / exglc
-        @show std(errs) / exglc
-        println()
-    end
-
-end
-
-## -------------------------------------------------------------------
-
-# -------------------------------------------------------------------
-using Test
-using ProgressMeter
-using Base.Threads
-const ChEP = Ch.MaxEntEP
-using Statistics
-let
-    Fd_rxns_map = iJR.load_rxns_map() 
-
-    # MaxEnt ep
-    # orig_model = deepcopy(ChU.fix_dims(fva_model))
-    scale_factors = 1000.0
-    orig_model = deepcopy(model)
-    # scl_model = Chemostat.Utils.well_scaled_model(model, scale_factor; verbose = true)
-
-    scl_model = deepcopy(orig_model)
-    
-    ChU.summary(scl_model, Fd_rxns_map["GLC"])
-    ChU.summary(scl_model, Fd_rxns_map["AC"])
-    ChU.summary(scl_model, Fd_rxns_map["FORM"])
-    ChU.summary(scl_model, Fd_rxns_map["O2"])
-    ChU.summary(scl_model, "GLCpts")
-
-    # Biomass
-    # 2.2 1/ h
-    ChU.bounds!(scl_model, iJR.BIOMASS_IDER, 0.0, 2.2)
-    
-    ChU.bounds!(scl_model, "GLCpts", -100.0, 100.0)
-
-    # 40 mmol / gDW h
-    max_ciDX = maximum(abs.(Nd.ciD_X(:GLC)))
-    ChU.lb!(scl_model, Fd_rxns_map["GLC"], -max_ciDX * 2.5)
-    # 45 mmol/ gDW
-    ChU.ub!(scl_model, Fd_rxns_map["AC"], 40.0)
-    # 55 mmol/ gDW h
-    ChU.ub!(scl_model, Fd_rxns_map["FORM"], 55.0)
-    # 20 mmol/ gDW h
-    ChU.lb!(scl_model, Fd_rxns_map["O2"], -20.0)
-
-    # scl_model = scale_model(scl_model, scale_factor)
-    scl_model = ChU.well_scaled_model(scl_model, scale_factor)
-
-    scl_model = ChLP.fva_preprocess(scl_model, 
-        check_obj = iJR.BIOMASS_IDER,
-        verbose = true
-    ) |> ChU.fix_dims
-
-    # for model_ in [orig_model, scl_model]
-    for model_ in [scl_model]
-        @info("MaxEnt Test $("-"^40)", size(model_))
-        epout = ChEP.maxent_ep(model_; epsconv = 1e-6, maxiter = 300)
-        exglc = ChU.av(model_, epout, iJR.EX_GLC_IDER)
-        objval = ChU.av(model_, epout, iJR.BIOMASS_IDER)
-        @show exglc objval
-        errs = abs.(ChU.stoi_err(model_, epout))
-        @show mean(errs)
-        @show maximum(errs) / exglc
-        @show minimum(errs) / exglc
-        @show mean(errs) / exglc
-        @show std(errs) / exglc
-        println()
-    end
-
-end
-
-## -------------------------------------------------------------------
-# let
-#     # model0 = deepcopy(model)
-#     smodel = deepcopy(scaled_model)
-#     epout = ChEP.maxent_ep(smodel; epsconv = 1e-4, maxiter = 300)
-#     ChU.av(model0, epout, iJR.EX_GLC_IDER)
-# end
