@@ -148,7 +148,7 @@ ChSS.apply_bound!(model, xi, intake_info; emptyfirst = true)
 # tot_cost is the exchange that controls the bounds of the 
 # enzimatic cost contraint, we bound it to [0, 1.0]
 ChU.lb!(model, cost_exch_id, 0.0);
-ChU.ub!(model, cost_exch_id, 5.0); # heuristic: cost <= 1.0 is to restrict for EP to converge
+ChU.ub!(model, cost_exch_id, 1.0); 
 
 # -------------------------------------------------------------------
 model = ChU.fix_dims(model)
