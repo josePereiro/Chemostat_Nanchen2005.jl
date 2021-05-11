@@ -151,13 +151,6 @@ ChU.lb!(model, cost_exch_id, 0.0);
 ChU.ub!(model, cost_exch_id, 5.0); # heuristic: cost <= 1.0 is to restrict for EP to converge
 
 # -------------------------------------------------------------------
-# Heuristic
-# GLCpts (Adenosine exchange)
-# This reaction is overpassing HEX1, I don't know why is here. Closing it!!!
-# (-1.0) glc_DASH_D_e + (-1.0) pep_c + (-0.0031) cost ==> (1.0) g6p_c + (1.0) pyr_c
-ChU.bounds!(model, "GLCpts", 0.0, 0.0) # This will be eliminated at fva_preprocessing
-
-# -------------------------------------------------------------------
 model = ChU.fix_dims(model)
 ChN.test_fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER)
 
@@ -257,17 +250,17 @@ let
     
     # Biomass
     # 2.2 1/ h
-    ChU.bounds!(scl_model, iJR.BIOMASS_IDER, 0.0, 2.2)
+    ChU.ub!(scl_model, iJR.BIOMASS_IDER, 2.2)
     
     Fd_rxns_map = iJR.load_rxns_map() 
     # 40 mmol / gDW h
-    ChU.bounds!(scl_model, Fd_rxns_map["GLC"], -40.0, 0.0)
+    ChU.lb!(scl_model, Fd_rxns_map["GLC"], -40.0)
     # 45 mmol/ gDW
-    ChU.bounds!(scl_model, Fd_rxns_map["AC"], 0.0, 40.0)
+    ChU.ub!(scl_model, Fd_rxns_map["AC"], 40.0)
     # 55 mmol/ gDW h
-    ChU.bounds!(scl_model, Fd_rxns_map["FORM"], 0.0, 55.0)
+    ChU.ub!(scl_model, Fd_rxns_map["FORM"], 55.0)
     # 20 mmol/ gDW h
-    ChU.bounds!(scl_model, Fd_rxns_map["O2"], -20.0, 0.0)
+    ChU.lb!(scl_model, Fd_rxns_map["O2"], -20.0)
     
     # fva
     max_model = ChLP.fva_preprocess(scl_model, 
