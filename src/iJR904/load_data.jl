@@ -52,7 +52,7 @@ end
 function load_rxns_map2()
     rxns_map = Dict()
     # inner reacts
-    rxns_map["GLC + ATP -> G6P"] = "HEX1"
+    rxns_map["GLC + ATP -> G6P"] = "GLCpts" # intake + phosphorylation 
     rxns_map["G6P -> 6PG + NADPH"] = "PGL"
     rxns_map["6PG -> P5P + CO2 + NADPH"] = "GND"
     rxns_map["G6P -> F6P"] = "PGI"
@@ -242,7 +242,7 @@ end
 
 function load_inner_iders()
     inner_iders =  [
-        "HEX1","PGL","GND","PGI","PFK","TKT1","TKT2",
+        "GLCpts","PGL","GND","PGI","PFK","TKT1","TKT2",
         "TALA","PYK","PDH","CS","ICDHyr","FUM","MDH",
         "ME1","PPCK","PPC","ACS","MALS","PGK","ENO"
     ]
@@ -251,7 +251,8 @@ end
 
 function load_inner_idermap()
     inner_idermap = Dict(
-        "HEX1"   => ["HEX1"],
+        # "HEX1"   => ["HEX1"],
+        "GLCpts" => ["GLCpts"],
         "PGL"    => ["PGL"],
         "GND"    => ["GND"],
         "PGI"    => ["PGI_fwd", "PGI_bkwd"],
@@ -291,7 +292,7 @@ function load_kreps_idermap()
 end
 
 load_inner_rxns_subs() = Dict(
-    "glycolysis" => ["HEX1", "PGI", "PFK", "PGK", "ENO", "PYK"],
+    "glycolysis" => ["PGI", "PFK", "PGK", "ENO", "PYK"],
     "krebs" => ["ICDHyr", "FUM", "MDH"],
     "pentose phosphate" => ["PGL", "GND", "TKT1", "TKT2", "TALA"],
     "others" => ["PDH", "CS", "ME1", "PPCK", "PPC", "ACS"],

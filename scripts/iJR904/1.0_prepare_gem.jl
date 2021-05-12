@@ -18,11 +18,10 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     const ChU = Ch.Utils
     const ChSS = Ch.SteadyState
     const ChLP = Ch.LP
-    const ChEP = Ch.MaxEntEP
 
 end
 
-# ------------------------------------------------------------------
+## ------------------------------------------------------------------
 # LOAD RAW MODEL
 src_file = iJR.rawdir("iJR904.mat")
 mat_model = MAT.matread(src_file)["model"]
@@ -35,7 +34,7 @@ ChU.tagprintln_inmw("MAT MODEL LOADED",
 )
 ChN.test_fba(model, iJR.BIOMASS_IDER; summary = false)
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # Set bounds
 # The abs maximum bounds will be set to 100
 ChU.tagprintln_inmw("CLAMP BOUNDS", 
@@ -53,7 +52,7 @@ foreach(model.rxns) do ider
         ChU.lb!(model, ider, new_lb)
 end
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # CLOSING EXCHANGES
 exchs = ChU.exchanges(model)
 ChU.tagprintln_inmw("CLOSE EXCANGES", 
@@ -67,7 +66,7 @@ foreach(exchs) do idx
     ChU.lb!(model, idx, 0.0) # Closing all intakes
 end
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # ENZYMATIC COST INFO
 # The cost will be introduced as a reaction, we follow the same cost models as 
 # Beg et al. (2007): https://doi.org/10.1073/pnas.0609845104.
@@ -96,7 +95,7 @@ for rxn in model.rxns
     end
 end
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # SPLITING REVS
 ChU.tagprintln_inmw("SPLITING REVS", 
     "\nfwd_suffix:      ", ChU.FWD_SUFFIX,
@@ -107,7 +106,7 @@ model = ChU.split_revs(model;
     get_bkwd_ider = bkwd_ider,
 );
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # ADDING COST REACCION
 cost_met_id = "cost"
 cost_exch_id = iJR.COST_IDER
@@ -126,7 +125,7 @@ ChU.set_met!(model, ChU.findempty(model, :mets), cost_met)
 cost_exch = ChU.Rxn(cost_exch_id, S = [1.0], mets = [cost_met_id], lb = -iJR.ABS_MAX_BOUND, ub = 0.0, c = 0.0)
 ChU.set_rxn!(model, ChU.findempty(model, :rxns), cost_exch);
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 # SET BASE EXCHANGE
 ChU.tagprintln_inmw("SETTING EXCHANGES") 
 # To control the intakes just the metabolites defined in the 
@@ -148,70 +147,54 @@ ChSS.apply_bound!(model, xi, intake_info; emptyfirst = true)
 # tot_cost is the exchange that controls the bounds of the 
 # enzimatic cost contraint, we bound it to [0, 1.0]
 ChU.lb!(model, cost_exch_id, 0.0);
-ChU.ub!(model, cost_exch_id, 1.0); 
+ChU.ub!(model, cost_exch_id, 1.0);
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 model = ChU.fix_dims(model)
 ChN.test_fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER)
 
-# -------------------------------------------------------------------
+## -------------------------------------------------------------------
 function scale_model(model, scale_factor)
     base_nzabs_range = ChU.nzabs_range(model.S)
     base_size = size(model)
     
     # Scale model (reduce S ill-condition)
-    scl_model = ChU.well_scaled_model(model, scale_factor)
+    model = ChU.well_scaled_model(model, scale_factor)
     
-    scl_size = size(scl_model)
-    scl_nzabs_range = ChU.nzabs_range(scl_model.S)
+    scl_size = size(model)
+    scl_nzabs_range = ChU.nzabs_range(model.S)
 
     @info("Model", exp, 
         base_size, base_nzabs_range, 
         scl_size, scl_nzabs_range
     ); println()
-    return scl_model |> ChU.fix_dims
+    return model
 end
 
 ## -------------------------------------------------------------------
-# POST PREPROCESSING
-BASE_MODELS = Dict{Any, Any}()
-
-# -------------------------------------------------------------------
-# BASE MODELS
+# FVA PREPROCESSING
 MODELS_FILE = iJR.procdir("base_models.bson")
-BASE_MODELS["base_model"] = ChU.compressed_model(model);
-
-# -------------------------------------------------------------------
-# FVA BASE MODEL
-fva_base_model = ChLP.fva_preprocess(model, 
-    check_obj = iJR.BIOMASS_IDER,
-    verbose = true
-) |> ChU.fix_dims
-BASE_MODELS["fva_base_model"] = ChU.compressed_model(fva_base_model);
-
-# -------------------------------------------------------------------
-# SCALE BASE MODEL
-scale_factor = 1000.0
-scl_base_model = scale_model(model, scale_factor)
-BASE_MODELS["scl_base_model"] = ChU.compressed_model(scl_base_model);
+const BASE_MODELS = isfile(MODELS_FILE) ? 
+    ChU.load_data(MODELS_FILE) : 
+    Dict{Any, Any}("base_model" => ChU.compressed_model(model))
 
 ## -------------------------------------------------------------------
-# contextualized models
 let
     for (exp, D) in Nd.val(:D) |> enumerate
 
-        FVA_EXP_MODELS = get!(BASE_MODELS, "fva_exp_models", Dict())
+        DAT = get!(BASE_MODELS, "fva_models", Dict())
         ChU.tagprintln_inmw("DOING FVA", 
             "\nexp:             ", exp,
             "\nD:               ", D,
-            "\ncProgress:       ", length(FVA_EXP_MODELS),
+            "\ncProgress:       ", length(DAT),
             "\n"
         )
-        haskey(FVA_EXP_MODELS, exp) && continue # cached
+        haskey(DAT, exp) && continue # cached
 
         ## -------------------------------------------------------------------
         # prepare model
-        model0 = deepcopy(scl_base_model)
+        scale_factor = 1000.0
+        model0 = scale_model(deepcopy(model), scale_factor)
 
         M, N = size(model0)
         exp_xi = Nd.val(:xi, exp)
@@ -220,14 +203,14 @@ let
             emptyfirst = true)
 
         ChN.test_fba(exp, model0, iJR.BIOMASS_IDER, iJR.COST_IDER)
-        fva_exp_model = ChLP.fva_preprocess(model0, 
+        fva_model = ChLP.fva_preprocess(model0, 
             check_obj = iJR.BIOMASS_IDER,
             verbose = true
         );
-        ChN.test_fba(exp, fva_exp_model, iJR.BIOMASS_IDER, iJR.COST_IDER)
+        ChN.test_fba(exp, fva_model, iJR.BIOMASS_IDER, iJR.COST_IDER)
 
         # storing
-        FVA_EXP_MODELS[exp] = ChU.compressed_model(fva_exp_model)
+        DAT[exp] = ChU.compressed_model(fva_model)
 
         ## -------------------------------------------------------------------
         # caching
@@ -246,30 +229,30 @@ let
 
     ChU.tagprintln_inmw("DOING MAX MODEL", "\n")
 
-    scl_model = deepcopy(scl_base_model)
+    scale_factor = 1000.0
+    max_model = scale_model(deepcopy(model), scale_factor)
     
     # Biomass
     # 2.2 1/ h
-    ChU.ub!(scl_model, iJR.BIOMASS_IDER, 2.2)
+    ChU.bounds!(max_model, iJR.BIOMASS_IDER, 0.0, 2.2)
     
     Fd_rxns_map = iJR.load_rxns_map() 
     # 40 mmol / gDW h
-    ChU.lb!(scl_model, Fd_rxns_map["GLC"], -40.0)
+    ChU.bounds!(max_model, Fd_rxns_map["GLC"], -40.0, 0.0)
     # 45 mmol/ gDW
-    ChU.ub!(scl_model, Fd_rxns_map["AC"], 40.0)
+    ChU.bounds!(max_model, Fd_rxns_map["AC"], 0.0, 40.0)
     # 55 mmol/ gDW h
-    ChU.ub!(scl_model, Fd_rxns_map["FORM"], 55.0)
+    ChU.bounds!(max_model, Fd_rxns_map["FORM"], 0.0, 55.0)
     # 20 mmol/ gDW h
-    ChU.lb!(scl_model, Fd_rxns_map["O2"], -20.0)
+    ChU.bounds!(max_model, Fd_rxns_map["O2"], -20.0, 0.0)
     
     # fva
-    max_model = ChLP.fva_preprocess(scl_model, 
+    max_model = ChLP.fva_preprocess(max_model, 
         check_obj = iJR.BIOMASS_IDER,
         verbose = true
-    ) |> ChU.fix_dims
+    );
 
     ## -------------------------------------------------------------------
-    # FBA Test
     test_model = deepcopy(max_model)
     for (exp, D) in Nd.val(:D) |> enumerate
         cgD_X = Nd.cval(:GLC, exp) * Nd.val(:D, exp) / Nd.val(:X, exp)
@@ -277,20 +260,8 @@ let
         fbaout = ChLP.fba(test_model, iJR.BIOMASS_IDER, iJR.COST_IDER)
         biom = ChU.av(test_model, fbaout, iJR.BIOMASS_IDER)
         cost = ChU.av(test_model, fbaout, iJR.COST_IDER)
-        exglc = ChU.av(test_model, fbaout, iJR.EX_GLC_IDER)
-        hex1 = ChU.av(test_model, fbaout, "HEX1")
-        @info("FBA Test", exp, cgD_X, D, biom, cost, exglc, hex1); println()
+        @info("Test", exp, cgD_X, D, biom, cost); println()
     end
-
-    ## -------------------------------------------------------------------
-    # MaxEnt Test
-    test_model = deepcopy(max_model)
-    epout = ChEP.maxent_ep(test_model; epsconv = 1e-4, maxiter = 500)
-    biom = ChU.av(test_model, epout, iJR.BIOMASS_IDER)
-    cost = ChU.av(test_model, epout, iJR.COST_IDER)
-    exglc = ChU.av(test_model, epout, iJR.EX_GLC_IDER)
-    hex1 = ChU.av(test_model, epout, "HEX1")
-    @info("EP Test", biom, cost, exglc, hex1); println()
 
     ## -------------------------------------------------------------------
     # saving
