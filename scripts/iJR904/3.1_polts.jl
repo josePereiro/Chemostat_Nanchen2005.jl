@@ -37,7 +37,7 @@ end
 ## ----------------------------------------------------------------------------
 function extract_flxs(model, epout)
     # inner flxs
-    idermap = iJR.load_inner_idermap()
+    idermap = iJR.load_inners_idermap()
     iJR_iders, avs, vas = [], [], []
     for (iJR_ider, model_iders) in idermap
         # flxs

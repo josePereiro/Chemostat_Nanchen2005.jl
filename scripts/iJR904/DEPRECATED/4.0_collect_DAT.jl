@@ -174,20 +174,16 @@ end
 # MAXENT DAT
 !skip_me && let 
 
-    # ME data
-    DAT_FILE_PREFFIX =  "maxent_ep_dat"
-    function dat_file(;kwargs...)
-        fname = UJL.mysavename(DAT_FILE_PREFFIX, "jls"; kwargs...)
-        iJR.procdir(fname)
-    end
-
-    WLOCK = ReentrantLock()
+    costider = iJR.COST_IDER
     objider = iJR.BIOMASS_IDER
 
-    # util fun
+    # util stuff
+    WLOCK = ReentrantLock()
     isexpdep(method) = (method != ME_MAX_POL_B0)
     depks(method, typ, Kd_met, exp) = 
-        isexpdep(method) ? (method, typ, Kd_met, exp) : (method, typ, Kd_met)
+    isexpdep(method) ? (method, typ, Kd_met, exp) : (method, typ, Kd_met)
+    
+    DAT_FILE_PREFFIX =  "maxent_ep_dat"
     function dat_file(;method, exp)
         kwargs = isexpdep(method) ? (;method, exp) : (;method)
         fname = UJL.mysavename(DAT_FILE_PREFFIX, "jls"; kwargs...)
@@ -228,17 +224,22 @@ end
                 ); println()
             end
 
-            # Biomass
+            # Biomass and cost
             ep_biom = ChU.av(model, epout, objider)
-            ep_std = sqrt(ChU.va(model, epout, objider))
+            ep_biomstd = sqrt(ChU.va(model, epout, objider))
+            ep_cost = ChU.av(model, epout, costider)
+            ep_coststd = sqrt(ChU.va(model, epout, costider))
             
             # store
             lock(WLOCK) do
                 DAT[depks(method, :flx, "D", exp)...] = ep_biom
-                DAT[depks(method, :err, "D", exp)...] = ep_std
+                DAT[depks(method, :err, "D", exp)...] = ep_biomstd
+                DAT[depks(method, :flx, "cost", exp)...] = ep_cost
+                DAT[depks(method, :err, "cost", exp)...] = ep_coststd
             end
 
             for Nd_met in FLX_IDERS
+                break # Test
                 model_exch = Nd_rxns_map[Nd_met]
 
                 # flxs
@@ -256,8 +257,9 @@ end
             end
 
             # inner flxs
-            idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
+            idermap = merge(iJR.load_inners_idermap(), iJR.load_inners_idermap())
             for (exider, model_iders) in idermap
+                break # Test
                 # flxs
                 ep_av = ChU.av(model, epout, model_iders[1])
                 ep_std = sqrt(ChU.va(model, epout, model_iders[1]))
@@ -290,6 +292,7 @@ end
     LP_DAT = ChU.load_data(LP_DAT_FILE; verbose = false);
 
     objider = iJR.BIOMASS_IDER
+    costider = iJR.COST_IDER
 
     for method in LP_METHODS
             
@@ -299,8 +302,13 @@ end
             fbaout = LP_DAT[method, :fbaout, exp]
 
             # Biomass
-            fba_flx = ChU.av(model, fbaout, objider)
-            DAT[method, :flx, "D", exp] = fba_flx
+            fba_biom = ChU.av(model, fbaout, objider)
+            DAT[method, :flx, "D", exp] = fba_biom
+            DAT[method, :err, "D", exp] = 0.0
+
+            fba_cost = ChU.av(model, fbaout, costider)
+            DAT[method, :flx, "cost", exp] = fba_cost
+            DAT[method, :err, "cost", exp] = 0.0
 
             for Nd_ider in FLX_IDERS
                 model_ider = Nd_rxns_map[Nd_ider]
@@ -309,7 +317,7 @@ end
                 DAT[method, :flx, Nd_ider, exp] = fba_flx
             end
 
-            idermap = merge(iJR.load_kreps_idermap(), iJR.load_inner_idermap())
+            idermap = merge(iJR.load_inners_idermap(), iJR.load_inners_idermap())
             for (exglcider, model_iders) in idermap
                 # flxs
                 fba_flx = ChU.av(model, fbaout, model_iders[1])
@@ -319,6 +327,7 @@ end
                 end
                         
                 DAT[method, :flx, exglcider, exp] = fba_flx
+                DAT[method, :err, exglcider, exp] = 0.0
             end
         end
 

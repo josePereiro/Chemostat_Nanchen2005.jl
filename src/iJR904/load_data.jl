@@ -249,7 +249,7 @@ function load_inner_iders()
 end
 
 
-function load_inner_idermap()
+function load_inners_idermap()
     inner_idermap = Dict(
         # "HEX1"   => ["HEX1"],
         "GLCpts" => ["GLCpts"],
@@ -276,25 +276,18 @@ function load_inner_idermap()
     )
 end
 
-function load_kreps_idermap()
-    kreps_idermap = Dict(
-        "SUCD1"  => ["SUCD1i"], 
-        "SUCOAS" => ["SUCOAS_fwd", "SUCOAS_bkwd"], 
-        "AKGDH"  => ["AKGDH"],
-        "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
-        "ACONT"  => ["ACONT_bkwd", "ACONT_fwd"],
-        "CS"     => ["CS"],
-        "MDH"    => ["MDH_fwd", "MDH_bkwd"],
-        "FUM"    => ["FUM_fwd", "FUM_bkwd"],
-        "MALS"   => ["MALS"],
-        "ICL"    => ["ICL"]
-    )
-end
-
 load_inner_rxns_subs() = Dict(
     "glycolysis" => ["PGI", "PFK", "PGK", "ENO", "PYK"],
-    "krebs" => ["ICDHyr", "FUM", "MDH"],
+    "krebs" => ["CS", "ICDHyr", "FUM", "MDH"],
     "pentose phosphate" => ["PGL", "GND", "TKT1", "TKT2", "TALA"],
-    "others" => ["PDH", "CS", "ME1", "PPCK", "PPC", "ACS"],
-    "glyoxylate shunt" => ["MALS"]
+    "others" => ["PDH", "ME1", "PPCK", "PPC", "ACS"],
+    "glyoxylate shunt" => ["MALS"],
+    "glc tranport" => ["GLCpts"]
 )
+
+subs() = ["glc tranport", "glycolysis", "pentose phosphate", "krebs", "glyoxylate shunt", "others"]
+
+# ME1 -> pyruvate metabolism
+# PPCK -> gluconeogenesis
+# PPC -> anaplerotic
+# ACS -> acetyl-CoA synthetase
