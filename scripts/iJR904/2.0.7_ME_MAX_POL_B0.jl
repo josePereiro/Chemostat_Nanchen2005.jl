@@ -1,5 +1,6 @@
-let
-    method = ME_MAX_POL_B0
+function do_max_pol_b0(method, model_key)
+    
+
     objider = iJR.BIOMASS_IDER
 
     # handle cache
@@ -7,7 +8,7 @@ let
     check_cache(;method) && return
 
     # setup
-    model = iJR.load_model("max_model")
+    model = iJR.load_model(model_key)
 
     lock(WLOCK) do
         @info("Doing... ", 
@@ -34,5 +35,15 @@ let
 
         @info("Finished ", threadid())
         println()
+    end
+end
+
+## ------------------------------------------------------------------------
+let
+    for (method, model_key) in [
+        # (ME_MAX_POL_B0, "max_model"),
+        (ME_MAX_POL_B0_COSTLESS, "max_model_costless")
+    ]
+        maxent_max_pol(method, model_key)
     end
 end

@@ -1,5 +1,4 @@
-let
-    method = ME_MAX_POL
+function maxent_max_pol(method, model_key)
     
     ## -------------------------------------------------------------------
     # Monitor
@@ -27,7 +26,7 @@ let
 
             ## -------------------------------------------------------------------
             # SetUp
-            model = iJR.load_model("max_model")
+            model = iJR.load_model(model_key)
             M, N = size(model)
             biomidx = ChU.rxnindex(model, iJR.BIOMASS_IDER)
             glcidx = ChU.rxnindex(model, iJR.EX_GLC_IDER)
@@ -372,4 +371,14 @@ let
     end # for thid
     UJL.reset!(mon)
 
+end
+
+## ------------------------------------------------------------------------
+let
+    for (method, model_key) in [
+        # (ME_MAX_POL, "max_model"),
+        (ME_MAX_POL_COSTLESS, "max_model_costless")
+    ]
+        maxent_max_pol(method, model_key)
+    end
 end

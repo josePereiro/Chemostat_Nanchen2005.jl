@@ -9,6 +9,7 @@ module iJR904
     const Nd = NanchenData
     import Chemostat
     const ChU = Chemostat.Utils
+    import MAT
 
     import UtilsJL
     const UJL = UtilsJL
