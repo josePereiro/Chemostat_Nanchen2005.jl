@@ -90,10 +90,12 @@ let
     ChU.tagprintln_inmw("COST-LESS MODELS\n")
 
     base_model = load_raw_model()
-    exchs = ChU.exchanges(base_model)
+    exchis = ChU.exchanges(base_model)
+    exchs = base_model.rxns[exchis]
     
     rescale_bounds!(base_model)
     close_exchanges!(base_model, exchs)
+    base_model = add_cost(base_model; cost_ub = 1.0)
     base_model = reset_exchanges(base_model, exchs)
 
     MODELS["base_model_costless"] = compress(base_model)

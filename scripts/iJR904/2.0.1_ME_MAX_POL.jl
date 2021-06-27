@@ -8,7 +8,7 @@ function maxent_max_pol(method, model_key)
 
     # Feed jobs
     Ch = Channel(nthreads()) do ch
-        cGLCs = Nd.val("cGLC")[1:1] # Test
+        cGLCs = Nd.val("cGLC")
         for (exp, cGLC)  in enumerate(cGLCs)
             put!(ch, (exp, cGLC))
         end
@@ -119,40 +119,6 @@ function maxent_max_pol(method, model_key)
                 any(isnan.(params))
             end
 
-            ## ----------------------------------------------------
-            # Dev
-            beta_vec[glcidx] = 1e2
-            epout = ChEP.maxent_ep(model; 
-                alpha = Inf, 
-                beta_vec,
-                verbose = true
-            )
-            biom_avPME = ChU.av(model, epout, iJR.BIOMASS_IDER)
-            vg_avPME = ChU.av(model, epout, iJR.EX_GLC_IDER)
-            biom_diff = abs(biom_avPME - exp_growth)
-            vg_diff = abs(vg_avPME - cgD_X)
-            print_info("Test")
-
-            fbaout = ChLP.fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER);
-            fba_obj_val = ChU.av(model, fbaout, iJR.BIOMASS_IDER)
-            fba_obj_val = ChU.av(model, fbaout, iJR.BIOMASS_IDER)
-            fba_ex_glc_val = ChU.av(model, fbaout, iJR.EX_GLC_IDER)
-            fba_ex_glc_b = ChU.bounds(model, iJR.EX_GLC_IDER)
-            exp_obj_val = Nd.val("D", exp)
-
-            ChU.tagprintln_inmw("FBA SOLUTION", 
-                "\nobj_ider:                ", iJR.BIOMASS_IDER,
-                "\nfba fba_ex_glc_val:      ", fba_ex_glc_val,
-                "\nfba fba_ex_glc_b:        ", fba_ex_glc_b,
-                "\nfba obj_val:             ", fba_obj_val,
-                "\nexp obj_val:             ", exp_obj_val,
-                "\ncost_ider:               ", iJR.COST_IDER,
-                "\nfba cost_val:            ", ChU.av(model, fbaout, iJR.COST_IDER),
-                "\n\n"
-            )
-            
-            return 
-
             ## -------------------------------------------------------------------
             function gd_core_fun(gdmodel; msg)
 
@@ -164,8 +130,7 @@ function maxent_max_pol(method, model_key)
                     beta_vec,
                     alpha = Inf,
                     maxiter = epmaxiter,  
-                    # epsconv = 1e-3, 
-                    epsconv = 1e-1, # Test
+                    epsconv = 9e-4, 
                     verbose = false, 
                     solution = epout
                 )

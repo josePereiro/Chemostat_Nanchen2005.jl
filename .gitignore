@@ -2,7 +2,7 @@
 # folders
 *data
 dev
-plots
+*plots
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/julia,macos,python,jupyternotebooks,code

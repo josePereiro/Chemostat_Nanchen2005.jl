@@ -40,16 +40,16 @@ function close_exchanges!(model, exchs)
     # Close, for now, all ChU.exchanges for avoiding it to be in revs
     # The reversible reactions will be splited for modeling cost
     # Exchanges have not associated cost, so, we do not split them
-    foreach(exchs) do idx
-        ChU.ub!(model, idx, 0.0) # Closing all outtakes
-        ChU.lb!(model, idx, 0.0) # Closing all intakes
+    foreach(exchs) do rxn
+        ChU.ub!(model, rxn, 0.0) # Closing all outtakes
+        ChU.lb!(model, rxn, 0.0) # Closing all intakes
     end
     return model
 end
 
 ## -------------------------------------------------------------------
 # ENZYMATIC COST
-function add_cost(model)
+function add_cost(model; cost_ub = 1.0)
     ## -------------------------------------------------------------------
     # ENZYMATIC COST INFO
     # The cost will be introduced as a reaction, we follow the same cost models as 
@@ -112,7 +112,7 @@ function add_cost(model)
     # tot_cost is the exchange that controls the bounds of the 
     # enzimatic cost contraint, we bound it to [0, 1.0]
     ChU.lb!(model, cost_exch_id, 0.0);
-    ChU.ub!(model, cost_exch_id, 1.0);
+    ChU.ub!(model, cost_exch_id, cost_ub);
 
     return model
 end
@@ -130,9 +130,10 @@ function reset_exchanges(model, exchs)
     # experimental minimum xi
     # see Cossios paper (see README)
 
-    foreach(exchs) do idx
-        ChU.ub!(model, idx, iJR.ABS_MAX_BOUND) # Opening all outakes
-        ChU.lb!(model, idx, 0.0) # Closing all intakes
+    foreach(exchs) do rxn
+        (rxn in [iJR.COST_IDER]) && return
+        ChU.ub!(model, rxn, iJR.ABS_MAX_BOUND) # Opening all outakes
+        ChU.lb!(model, rxn, 0.0) # Closing all intakes
     end
 
     # see Cossios paper (see README) for details in the Chemostat bound constraint
@@ -213,7 +214,8 @@ function make_max_model(model; scale_factor = 1000.0)
     
     Fd_rxns_map = iJR.load_rxns_map() 
     # 40 mmol / gDW h
-    ChU.bounds!(max_model, Fd_rxns_map["GLC"], -40.0, 0.0)
+    # ChU.bounds!(max_model, Fd_rxns_map["GLC"], -40.0, 0.0)
+    ChU.bounds!(max_model, Fd_rxns_map["GLC"], -8.0, 0.0)
     # 45 mmol/ gDW
     ChU.bounds!(max_model, Fd_rxns_map["AC"], 0.0, 40.0)
     # 55 mmol/ gDW h
