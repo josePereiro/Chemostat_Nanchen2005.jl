@@ -297,14 +297,14 @@ _get_val(id, dk, ref, dflt) = try; _get_val(id, dk, ref); catch err; dflt end
 
 for fun in [:val, :err]
     dk = string(fun)
-    @eval $fun(id) = _get_val(id, $dk)
-    @eval $fun(id, ref) = _get_val(id, $dk, ref)
-    @eval $fun(id, ref, dflt) = _get_val(id, $dk, ref, dflt)
+    @eval $(fun)(id) = _get_val(id, $(dk))
+    @eval $(fun)(id, ref) = _get_val(id, $(dk), ref)
+    @eval $(fun)(id, ref, dflt) = _get_val(id, $(dk), ref, dflt)
 
     for p in [:u, :c]
         pstr = string(p)
         pfun = Symbol(p, fun)
-        @eval $pfun(id, args...) = $fun(string($pstr, id), args...)
+        @eval $(pfun)(id, args...) = $(fun)(string($(pstr), id), args...)
     end
 end
 

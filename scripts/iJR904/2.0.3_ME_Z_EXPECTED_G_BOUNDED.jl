@@ -1,7 +1,5 @@
 # initial approach
-let
-    # global setup
-    method = ME_Z_EXPECTED_G_BOUNDED
+function do_z_expected_ug_bounded(method, model_key)
 
     # orig model
     iterator = Nd.val(:D) |> enumerate |> collect 
@@ -9,39 +7,31 @@ let
         thid = threadid()
 
         ## -------------------------------------------------------------------
-        # thread globals
         # ep
-        alpha = Inf
-        damp = 0.9
-        epsconv = 1e-4 # Test
-        maxvar = 1e50
-        minvar = 1e-50
-        maxiter = 1000
+        me_params = lglob(iJR, :maxent, :params)
+        @extract me_params: alpha epsconv maxiter damp maxvar minvar
 
         # approach
         convth = 0.01
         converr = nothing
 
-
         ## -------------------------------------------------------------------
         # handle cache
         datfile = dat_file(;method, exp)
-        # rm(datfile; force = true) # Test
-        check_cache(;method, exp) && continue
+        is_cached(;method, exp) && continue
 
         # prepare model
-        model = iJR.load_model("fva_models", exp)
+        model = iJR.load_model(model_key, exp)
         biomidx = ChU.rxnindex(model, iJR.BIOMASS_IDER)
         M, N = size(model)
         exp_growth = Nd.val(:D, exp)
         growth_ub = ChU.ub(model, iJR.BIOMASS_IDER)
-        feasible = exp_growth < growth_ub
-        biom_lb, biom_ub = ChU.bounds(model, iJR.BIOMASS_IDER)
-        if biom_ub < exp_growth
+        feasible = exp_growth <= growth_ub
+        if !feasible
             lock(WLOCK) do
                 @info("Not feasible (skipping)", 
                     exp, method, 
-                    biom_ub ,exp_growth, 
+                    growth_ub ,exp_growth, 
                     thid
                 ); println()
             end
@@ -58,10 +48,9 @@ let
                 thid
             ); println()
         end
-        !feasible && continue
 
         # simulation
-        dat = isfile(datfile) ? deserialize(datfile) : Dict()
+        dat = ldat(() -> Dict(), iJR, datfile)
         epouts = get!(dat, :epouts, Dict())
         init_len = length(epouts)
         beta_vec = zeros(N)
@@ -130,7 +119,7 @@ let
             # Catching
             update = init_len != length(epouts)
             update && lock(WLOCK) do
-                serialize(datfile, dat)
+                sdat(iJR, dat, datfile)
                 @info("Catching", approach, 
                     exp, method,  
                     length(epouts),
@@ -152,7 +141,7 @@ let
             dat[:approach_status] = :finished
             dat[:model] = model |> ChU.compressed_model
             dat[:exp_beta] = maximum(keys(epouts))
-            serialize(datfile, dat)
+            sdat(iJR, dat, datfile)
             @info("Finished", exp, method,  
                 length(epouts),
                 thid
@@ -160,34 +149,33 @@ let
         end
        
     end # for (exp, D)
+
+    do_z_expected_ug_bounded_further_conv(method)
+
 end
 
 
 ## ----------------------------------------------------------------------------
 # Further convergence
-let
-    method = ME_Z_EXPECTED_G_BOUNDED
+function do_z_expected_ug_bounded_further_conv(method)
+
+    # ep
+    me_params = lglob(iJR, :maxent, :params)
+    @extract me_params: alpha epsconv maxiter damp maxvar minvar
 
     iterator = Nd.val(:D) |> enumerate |> collect 
     @threads for (exp, D) in iterator
 
         ## -------------------------------------------------------------------
         # thread globals
-        # ep
-        alpha = Inf
-        damp = 0.9
-        epsconv = 1e-4 # Test
-        maxvar = 1e50
-        minvar = 1e-50
-        maxiter = 1000
-
+        
         # handle cache
         datfile = dat_file(;method, exp)
-        dat = deserialize(datfile)
-        model, epouts = ChU.uncompressed_model(dat[:model]), dat[:epouts]
-        
-        exp_growth = Nd.val(:D, exp)
-        exp_beta = maximum(keys(epouts))
+        dat = ldat(iJR, datfile)
+        model = ChU.uncompressed_model(dat[:model])
+        epouts = dat[:epouts]
+
+        exp_beta = dat[:exp_beta]
         exp_epout = epouts[exp_beta]
 
         lock(WLOCK) do
@@ -225,6 +213,6 @@ let
             ); println()
         end
         dat[:converg_status] = :done
-        serialize(datfile, dat)
+        sdat(iJR, dat, datfile)
     end
 end

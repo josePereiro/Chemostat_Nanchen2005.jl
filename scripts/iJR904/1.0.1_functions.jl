@@ -1,10 +1,9 @@
 ## -------------------------------------------------------------------
 function load_raw_model()
     model = iJR.load_model("raw_model")
-    ChU.tagprintln_inmw("MAT MODEL LOADED", 
-        "\nmodel size:           ", size(model),
-        "\nChU.nzabs_range:      ", ChU.nzabs_range(model.S),
-    )
+    model_size = size(model)
+    nz_abs = ChU.nzabs_range(model.S)
+    @info("MAT MODEL LOADED", model_size, nz_abs)
     ChN.test_fba(model, iJR.BIOMASS_IDER; summary = false)
     return model
 end
@@ -13,9 +12,7 @@ end
 # rescale bounds bounds
 # The abs maximum bounds will be set to 100
 function rescale_bounds!(model)
-    ChU.tagprintln_inmw("CLAMP BOUNDS", 
-        "\nabs max bound: ", iJR.ABS_MAX_BOUND
-    )
+    @info("CLAMP BOUNDS", iJR.ABS_MAX_BOUND)
     foreach(model.rxns) do ider
             ChU.isfixxed(model, ider) && return # fixxed reaction are untouched
 
@@ -34,9 +31,7 @@ end
 # CLOSING EXCHANGES
 function close_exchanges!(model, exchs)
     
-    ChU.tagprintln_inmw("CLOSE EXCANGES", 
-        "\nChU.exchanges: ", exchs |> length
-    )
+    @info("CLOSE EXCANGES", length(exchs))
     # Close, for now, all ChU.exchanges for avoiding it to be in revs
     # The reversible reactions will be splited for modeling cost
     # Exchanges have not associated cost, so, we do not split them
@@ -81,10 +76,9 @@ function add_cost(model; cost_ub = 1.0)
 
     ## -------------------------------------------------------------------
     # SPLITING REVS
-    ChU.tagprintln_inmw("SPLITING REVS", 
-        "\nfwd_suffix:      ", ChU.FWD_SUFFIX,
-        "\nbkwd_suffix:     ", ChU.BKWD_SUFFIX,
-    )
+    nfwd_suffix = ChU.FWD_SUFFIX
+    bkwd_suffix = ChU.BKWD_SUFFIX
+    @info("SPLITING REVS", nfwd_suffix, bkwd_suffix)
     model = ChU.split_revs(model;
         get_fwd_ider = fwd_ider,
         get_bkwd_ider = bkwd_ider,
@@ -94,12 +88,13 @@ function add_cost(model; cost_ub = 1.0)
     # ADDING COST REACCION
     cost_met_id = "cost"
     cost_exch_id = iJR.COST_IDER
-    ChU.tagprintln_inmw("ADDING COST", 
-        "\ncosts to add: ", cost_info |> length,
-        "\nmin abs coe:  ", cost_info |> values .|> abs |> minimum,
-        "\nmax abs coe:  ", cost_info |> values .|> abs |> maximum,
-        "\ncost met id:  ", cost_met_id,
-        "\ncost exch id: ", cost_exch_id
+
+    # info
+    to_add = cost_info |> length
+    min_abs_cost = cost_info |> values .|> abs |> minimum
+    max_abs_cost = cost_info |> values .|> abs |> maximum
+    @info("ADDING COST", 
+        to_add, min_abs_cost, max_abs_cost, cost_met_id, cost_exch_id
     )
 
     M, N = size(model)
@@ -123,7 +118,7 @@ function reset_exchanges(model, exchs)
 
     model = ChU.fix_dims(model)
 
-    ChU.tagprintln_inmw("SETTING EXCHANGES") 
+    @info("SETTING EXCHANGES") 
     # To control the intakes just the metabolites defined in the 
     # base_intake_info (The minimum medium) will be opened.
     # The base model will be constraint as in a cultivation with 
@@ -170,11 +165,7 @@ end
 
 ## -------------------------------------------------------------------
 function make_fva_model(model, exp, D; scale_factor = 1000.0)
-    ChU.tagprintln_inmw("DOING FVA", 
-        "\nexp:             ", exp,
-        "\nD:               ", D,
-        "\n"
-    )
+    @info("DOING FVA", exp, D)
 
     ## -------------------------------------------------------------------
     # prepare model
@@ -204,7 +195,7 @@ function make_max_model(model; scale_factor = 1000.0)
     # Varma, (1993): 2465–73. https://doi.org/10.1128/AEM.59.8.2465-2473.1993.
     # Extract max exchages from FIG 3 to form the maximum polytope
 
-    ChU.tagprintln_inmw("DOING MAX MODEL", "\n")
+    @info("DOING MAX MODEL")
 
     max_model = scale_model(deepcopy(model), scale_factor)
     

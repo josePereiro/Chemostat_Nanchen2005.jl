@@ -1,5 +1,5 @@
-import DrWatson: quickactivate
-quickactivate(@__DIR__, "Chemostat_Nanchen2006")
+using ProjAssistant
+@quickactivate
 
 @time begin
     using MAT
@@ -16,22 +16,13 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     const iJR = ChN.iJR904
     const Nd = ChN.NanchenData # experimental data
 
-    import UtilsJL
-    const UJL = UtilsJL
-
     using ProgressMeter
     using Plots
     import SparseArrays
 end
 
 ## ----------------------------------------------------------------------------
-MODELS_FILE = iJR.procdir("base_models.bson")
-BASE_MODELS = ChU.load_data(MODELS_FILE);
-fileid = "1.1"
-function mysavefig(p, pname; params...) 
-    fname = UJL.mysavefig(p, string(fileid, "_", pname), iJR.plotsdir(); params...)
-    @info "Plotting" fname
-end
+BASE_MODELS = ldat(iJR, "base_models.bson");
 
 ## ----------------------------------------------------------------------------
 # Biomass medium sensibility
@@ -80,7 +71,7 @@ let
         plot!(p, factors, res; label = lb_, lw = 3)
         lcount -= 1
     end
-    mysavefig(p, "medium_sesitivity_study")
+    sfig(iJR, p, @fileid, "medium_sesitivity_study", ".png")
 end
 
 ## ----------------------------------------------------------------------------
@@ -98,18 +89,15 @@ let
         fba_ex_glc_val = ChU.av(model, fbaout, iJR.EX_GLC_IDER)
         fba_ex_glc_b = ChU.bounds(model, iJR.EX_GLC_IDER)
         exp_obj_val = Nd.val("D", exp)
+        fba_cost_val = ChU.av(model, fbaout, iJR.COST_IDER)
 
-        ChU.tagprintln_inmw("FBA SOLUTION", 
-            "\nobj_ider:                ", iJR.BIOMASS_IDER,
-            "\nfba fba_ex_glc_val:      ", fba_ex_glc_val,
-            "\nfba fba_ex_glc_b:        ", fba_ex_glc_b,
-            "\nfba obj_val:             ", fba_obj_val,
-            "\nexp obj_val:             ", exp_obj_val,
-            "\ncost_ider:               ", iJR.COST_IDER,
-            "\nfba cost_val:            ", ChU.av(model, fbaout, iJR.COST_IDER),
-            "\n\n"
+        @info("FBA SOLUTION", 
+            iJR.BIOMASS_IDER, fba_ex_glc_val, fba_ex_glc_b, 
+            fba_obj_val, exp_obj_val, 
+            iJR.COST_IDER, fba_cost_val
         )
-        (fba_obj_val < exp_obj_val) && @warn "fba objval < exp objval" fba_obj_val exp_obj_val
+
+        (fba_obj_val < exp_obj_val) && @warn("fba objval < exp objval", fba_obj_val, exp_obj_val)
     end
 end
 
@@ -152,7 +140,7 @@ end
 let
     model = ChU.load_data(iJR.BASE_MODEL_FILE; verbose = false)
     fbaout = ChLP.fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER);
-    ChU.tagprintln_inmw("FBA SOLUTION", 
+    println("FBA SOLUTION", 
         "\nobj_ider:         ", iJR.BIOMASS_IDER,
         "\nsize:             ", size(model),
         "\nfba obj_val:      ", ChU.av(model, fbaout, iJR.BIOMASS_IDER),
@@ -162,7 +150,7 @@ let
     )
     model = ChU.well_scaled_model(model, 100.0; verbose = false)
     fbaout = ChLP.fba(model, iJR.BIOMASS_IDER, iJR.COST_IDER);
-    ChU.tagprintln_inmw("FBA SOLUTION", 
+    println("FBA SOLUTION", 
         "\nobj_ider:         ", iJR.BIOMASS_IDER,
         "\nsize:             ", size(model),
         "\nfba obj_val:      ", ChU.av(model, fbaout, iJR.BIOMASS_IDER),

@@ -9,7 +9,7 @@ let
 
         # handle cache
         datfile = dat_file(DAT_FILE_PREFFIX; exp, method)
-        check_cache(datfile, exp, method) || continue
+        is_cached(;datfile, exp, method) || continue
 
         # setup
         model = load_model(exp)

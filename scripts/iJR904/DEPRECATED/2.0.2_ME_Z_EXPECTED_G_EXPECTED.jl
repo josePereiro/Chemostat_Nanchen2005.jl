@@ -23,7 +23,7 @@ let
             ## -------------------------------------------------------------------
             # handle cache
             datfile = dat_file(;method, exp)
-            check_cache(datfile, exp, method) && continue
+            is_cached(;datfile, exp, method) && continue
 
             ## -------------------------------------------------------------------
             # SetUp

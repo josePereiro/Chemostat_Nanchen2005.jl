@@ -210,23 +210,21 @@ end
 ## ------------------------------------------------------------------
 # base model exch met map
 # A quick way to get exchages from mets and te other way around
-load_exch_met_map() = UJL.load_data(procdir("exch_met_map.bson"); verbose=false)
+load_exch_met_map() = lprocdar(iJR904, "exch_met_map", ".bson")
 
 ## ------------------------------------------------------------------
 # The intakes bounds of the network are determined by the 
 # medium concentration in the Chemostat model (see Cossios paper)
 # This is a base medium for modeling
 
-function load_base_intake_info()
-    return Dict(
-        "EX_glc_LPAREN_e_RPAREN_" => Dict("c"=> maximum(Nd.val(:cGLC)), "lb"=> -ABS_MAX_BOUND),
-        "EX_nh4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_so4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-        "EX_h_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
-    )
-end
+load_base_intake_info()= Dict(
+    "EX_glc_LPAREN_e_RPAREN_" => Dict("c"=> maximum(Nd.val(:cGLC)), "lb"=> -ABS_MAX_BOUND),
+    "EX_nh4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+    "EX_o2_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+    "EX_pi_LPAREN_e_RPAREN_"  => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+    "EX_so4_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+    "EX_h_LPAREN_e_RPAREN_" => Dict("c"=> MAX_CONC, "lb"=> -ABS_MAX_BOUND),
+)
 
 function intake_info(exp)
     intake_info = load_base_intake_info();
@@ -234,47 +232,41 @@ function intake_info(exp)
     return intake_info
 end
 
-function load_krebs_iders()
-    krebs_iders = ["SUCD1", "SUCOAS", "AKGDH", "ICDHyr", 
-        "ACONT", "CS", "MDH", "FUM", "MALS", "ICL"
-    ]
-end
+load_krebs_iders() = ["SUCD1", "SUCOAS", "AKGDH", "ICDHyr", 
+    "ACONT", "CS", "MDH", "FUM", "MALS", "ICL"
+]
 
-function load_inner_iders()
-    inner_iders =  [
-        "GLCpts","PGL","GND","PGI","PFK","TKT1","TKT2",
-        "TALA","PYK","PDH","CS","ICDHyr","FUM","MDH",
-        "ME1","PPCK","PPC","ACS","MALS","PGK","ENO"
-    ]
-end
+load_inner_iders() = [
+    "GLCpts","PGL","GND","PGI","PFK","TKT1","TKT2",
+    "TALA","PYK","PDH","CS","ICDHyr","FUM","MDH",
+    "ME1","PPCK","PPC","ACS","MALS","PGK","ENO"
+]
 
 
-function load_inners_idermap()
-    inner_idermap = Dict(
-        # "HEX1"   => ["HEX1"],
-        "GLCpts" => ["GLCpts"],
-        "PGL"    => ["PGL"],
-        "GND"    => ["GND"],
-        "PGI"    => ["PGI_fwd", "PGI_bkwd"],
-        "PFK"    => ["PFK"],
-        "TKT1"   => ["TKT1_fwd", "TKT1_bkwd"],
-        "TKT2"   => ["TKT2_fwd", "TKT2_bkwd"],
-        "TALA"   => ["TALA_fwd", "TALA_bkwd"],
-        "PYK"    => ["PYK"],
-        "PDH"    => ["PDH"],
-        "CS"     => ["CS"],
-        "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
-        "FUM"    => ["FUM_fwd", "FUM_bkwd"],
-        "MDH"    => ["MDH_fwd", "MDH_bkwd"],
-        "ME1"    => ["ME1"],
-        "PPCK"   => ["PPCK"],
-        "PPC"    => ["PPC"],
-        "ACS"    => ["ACS"],
-        "MALS"   => ["MALS"],
-        "PGK"    => ["PGK_fwd", "PGK_bkwd"],
-        "ENO"    => ["ENO_fwd", "ENO_bkwd"],
-    )
-end
+load_inners_idermap() = Dict(
+    # "HEX1"   => ["HEX1"],
+    "GLCpts" => ["GLCpts"],
+    "PGL"    => ["PGL"],
+    "GND"    => ["GND"],
+    "PGI"    => ["PGI_fwd", "PGI_bkwd"],
+    "PFK"    => ["PFK"],
+    "TKT1"   => ["TKT1_fwd", "TKT1_bkwd"],
+    "TKT2"   => ["TKT2_fwd", "TKT2_bkwd"],
+    "TALA"   => ["TALA_fwd", "TALA_bkwd"],
+    "PYK"    => ["PYK"],
+    "PDH"    => ["PDH"],
+    "CS"     => ["CS"],
+    "ICDHyr" => ["ICDHyr_fwd", "ICDHyr_bkwd"],
+    "FUM"    => ["FUM_fwd", "FUM_bkwd"],
+    "MDH"    => ["MDH_fwd", "MDH_bkwd"],
+    "ME1"    => ["ME1"],
+    "PPCK"   => ["PPCK"],
+    "PPC"    => ["PPC"],
+    "ACS"    => ["ACS"],
+    "MALS"   => ["MALS"],
+    "PGK"    => ["PGK_fwd", "PGK_bkwd"],
+    "ENO"    => ["ENO_fwd", "ENO_bkwd"],
+)
 
 load_inner_rxns_subs() = Dict(
     "glycolysis" => ["PGI", "PFK", "PGK", "ENO", "PYK"],

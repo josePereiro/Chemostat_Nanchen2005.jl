@@ -8,9 +8,8 @@ module Chemostat_Nanchen2006
     const ChSS = Ch.SteadyState
     const ChLP = Ch.LP
 
-    import UtilsJL
-    const UJL = UtilsJL
-    UJL.gen_top_proj(@__MODULE__)
+    using ProjAssistant
+    @gen_top_proj
 
     include("NanchenData/NanchenData.jl")
     include("Utils/Utils.jl")
@@ -18,7 +17,7 @@ module Chemostat_Nanchen2006
     include("iJR904/iJR904.jl")
 
     function __init__()
-        UJL.create_proj_dirs(@__MODULE__)
+        @create_proj_dirs
     end
 
 end

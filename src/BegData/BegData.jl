@@ -1,14 +1,13 @@
 # Beg et al. (2007): https://doi.org/10.1073/pnas.0609845104.
 module BegData
 
-    import ..Chemostat_Nanchen2006
-    const ChN = Chemostat_Nanchen2006
-    using DataFrames
+    import DataFrames
+    import DataFrames: DataFrame
     import CSV
 
-    import UtilsJL
-    const UJL = UtilsJL
-    UJL.gen_sub_proj(@__MODULE__)
+    import ProjAssistant
+    import ProjAssistant: rawdir
+    ProjAssistant.@gen_sub_proj
 
     ## ------------------------------------------------------------------------
     # The average crowding coefficient a was fitted to obtain the minimum square 
@@ -21,9 +20,9 @@ module BegData
     ## ------------------------------------------------------------------------
     # enzymatic costs from Beg et al. (2007): 
     # https://doi.org/10.1073/pnas.0609845104.
-    load_enz_data() = CSV.read(rawdir("beg2007___enzymatic_data.tsv"), DataFrame)
+    load_enz_data() = CSV.read(rawdir(BegData, "beg2007___enzymatic_data.tsv"), DataFrame)
     
     function __init__()
-        UJL.create_proj_dirs(@__MODULE__)
+        ProjAssistant.@create_proj_dirs
     end
 end

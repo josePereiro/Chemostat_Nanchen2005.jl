@@ -7,7 +7,7 @@ let
 
         # handle cache
         datfile = dat_file(;exp, method)
-        # check_cache(;exp, method) && continue
+        # is_cached(;exp, method) && continue
 
         # setup
         model = iJR.load_model("fva_models", exp)
