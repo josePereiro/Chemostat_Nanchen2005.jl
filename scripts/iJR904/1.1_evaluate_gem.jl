@@ -18,6 +18,8 @@ using ProjAssistant
 
     using ProgressMeter
     using Plots
+    import GR
+    !isinteractive() && GR.inline("png")
     import SparseArrays
 end
 

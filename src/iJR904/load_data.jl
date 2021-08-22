@@ -43,14 +43,6 @@ function load_rxns_map()
     rxns_map["LAC"] = "EX_lac_D_LPAREN_e_RPAREN_"
     rxns_map["PYR"] = "EX_pyr_LPAREN_e_RPAREN_"
 
-    for (k, v) in rxns_map
-        rxns_map[v] = k
-    end
-    return rxns_map
-end
-
-function load_rxns_map2()
-    rxns_map = Dict()
     # inner reacts
     rxns_map["GLC + ATP -> G6P"] = "GLCpts" # intake + phosphorylation 
     rxns_map["G6P -> 6PG + NADPH"] = "PGL"

@@ -32,6 +32,8 @@ quickactivate(@__DIR__, "Chemostat_Nanchen2006")
     UJL.set_cache_dir(iJR.cachedir())
 
     using Plots
+    import GR
+    !isinteractive() && GR.inline("png")
 end
 
 ## ----------------------------------------------------------------------------
@@ -60,7 +62,7 @@ end
 let
     model = iJR.load_model("max_model")
     exglc_ider = iJR.EX_GLC_IDER
-    Nd_rxns_map = iJR.load_rxns_map2() # inner reacts
+    Nd_rxns_map = iJR.load_rxns_map() # inner reacts
     iJR_ider_subs = iJR.load_inner_rxns_subs()
 
     fpath = iJR.procdir("MSE_study_params.jls")

@@ -16,8 +16,4 @@ module Chemostat_Nanchen2006
     include("BegData/BegData.jl")
     include("iJR904/iJR904.jl")
 
-    function __init__()
-        @create_proj_dirs
-    end
-
 end

@@ -1,6 +1,7 @@
 using ProjAssistant
 @quickactivate
 
+## ----------------------------------------------------------------------------
 @time begin
     using Serialization
 
@@ -10,7 +11,7 @@ using ProjAssistant
 
     using Plots
     import GR
-    GR.inline("png")
+    !isinteractive() && GR.inline("png")
 
     using Serialization
     using Base.Threads
@@ -72,7 +73,7 @@ let
                 # betas
                 for bk in [:vg_beta, :biom_beta]
                     dat = get(kdat, bk, [])
-                    p = plot(fun.(dat);  title = string(bk), 
+                    p = plot(dat;  title = string(bk), 
                         xlabel = "iter", ylabel = string(bk), 
                         lw = 3, label = string(bk)
                     )

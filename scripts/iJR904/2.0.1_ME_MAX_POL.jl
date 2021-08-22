@@ -13,14 +13,17 @@ function maxent_max_pol(method, model_key)
         end
     end
 
-    # @threads 
-    for _ in 1:nthreads()
+    @threads for _ in 1:nthreads()
         thid = threadid()
         for (exp, cGLC) in Ch
             
             ## -------------------------------------------------------------------
             # handle cache
             is_cached(;method, exp) && continue
+            
+            ## -------------------------------------------------------------------
+            # Excluded because of unfeasibility or convergence problems
+            exp in IGNORE_EXPS && continue 
 
             ## -------------------------------------------------------------------
             # SetUp
@@ -71,8 +74,8 @@ function maxent_max_pol(method, model_key)
             vg_gddamp = 1.0 # vg gd current damp
 
             gdit = -1 # current gd iter
-            gderr = -1 # current gd error
-            last_infotime = -1 # time to check if gd needs to update
+            gderr = -1.0 # current gd error
+            last_infotime = -1.0 # time to check if gd needs to update
             upfrec_time = 15 # update info frequency
 
             # the whole simulation converge as ~log, 
@@ -150,12 +153,10 @@ function maxent_max_pol(method, model_key)
                 vg_diff = abs(vg_avPME - cgD_X)
                 
                 gderr = gdmodel.ϵi
-                if isinfotime 
-                    print_info(msg;
-                        exp, rounditer, gdit, gderr, 
-                        vg_gddamp, biom_gddamp,
-                    )
-                end
+                print_info(msg;
+                    exp, rounditer, gdit, gderr, 
+                    vg_gddamp, biom_gddamp,
+                )
 
                 # MONITOR
                 SimT.record!(mon) do dat
