@@ -1,7 +1,7 @@
 name = "Chemostat_Nanchen2006"
 uuid = "8f92618d-94d3-4879-9356-aac9ef9aa014"
 authors = ["josePereiro <jose.pereiro.lab@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
